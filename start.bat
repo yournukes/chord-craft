@@ -1,4 +1,6 @@
 @echo off
+rem 日本語環境での文字化けを防ぐため UTF-8 コードページに変更
+chcp 65001 >nul
 setlocal
 
 rem 実行ディレクトリをスクリプト配置場所に変更
@@ -38,4 +40,6 @@ goto :eof
 :error
 echo.
 echo エラーが発生しました。ログを確認してください。
+echo ウィンドウを閉じるには何かキーを押してください。
+pause >nul
 exit /b 1
