@@ -54,6 +54,51 @@
               <button @click="moveChord(idx, -1)" class="flex-1 px-2 py-1 rounded bg-slate-800 border border-slate-700">◀︎</button>
               <button @click="moveChord(idx, 1)" class="flex-1 px-2 py-1 rounded bg-slate-800 border border-slate-700">▶︎</button>
             </div>
+            <div class="space-y-2 text-xs text-slate-200">
+              <div class="flex items-center justify-between">
+                <span class="text-slate-300">フォーム</span>
+                <button
+                  class="px-2 py-1 rounded bg-sky-600/80 hover:bg-sky-500 text-slate-50 text-[11px]"
+                  @click="openShapeDialog(chord.label)"
+                >
+                  フォーム登録
+                </button>
+              </div>
+              <div v-if="shapesForLabel(chord.label).length === 0" class="text-slate-400">未登録です。</div>
+              <div v-else class="space-y-2">
+                <div
+                  v-for="shape in shapesForLabel(chord.label)"
+                  :key="shape.id"
+                  class="p-2 rounded border border-slate-700 bg-slate-900/70"
+                >
+                  <div class="flex items-center justify-between mb-1">
+                    <p class="font-semibold text-slate-100">{{ shape.position || 'ポジション未設定' }}</p>
+                    <button
+                      class="text-[11px] px-2 py-1 rounded bg-amber-500/80 text-slate-900"
+                      @click="editShape(shape)"
+                    >
+                      編集
+                    </button>
+                  </div>
+                  <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+                    <span>開始フレット: {{ shape.diagram.startFret }}F</span>
+                    <span>コード: {{ shape.chord }}</span>
+                  </div>
+                  <div class="grid grid-cols-6 gap-1">
+                    <div
+                      v-for="(fret, sidx) in shape.diagram.frets"
+                      :key="sidx"
+                      class="flex flex-col items-center gap-1"
+                    >
+                      <span class="text-[10px] text-slate-500">{{ 6 - sidx }}弦</span>
+                      <span class="w-full text-center py-1 text-[11px] rounded bg-slate-950 border border-slate-700">
+                        {{ fretLabel(fret) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -129,6 +174,57 @@
 
       <section class="p-4 rounded-lg bg-slate-900 border border-slate-800">
         <div class="flex items-center justify-between mb-3">
+          <h2 class="text-xl font-semibold flex items-center gap-2">
+            <span class="w-2 h-2 bg-indigo-400 rounded-full"></span> コードフォーム管理
+          </h2>
+          <button
+            @click="openShapeDialog()"
+            class="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm"
+          >
+            新規フォーム
+          </button>
+        </div>
+        <p class="text-sm text-slate-400 mb-3">指板上の押さえ方を登録しておくと、進行のカード内でいつでも確認・編集できます。</p>
+        <div v-if="shapes.length === 0" class="text-sm text-slate-400">まだフォームがありません。</div>
+        <div v-else class="grid md:grid-cols-2 gap-3">
+          <div
+            v-for="shape in shapes"
+            :key="shape.id"
+            class="p-3 rounded border border-slate-800 bg-slate-800/70 space-y-2"
+          >
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-slate-400">コード</p>
+                <p class="text-lg font-semibold">{{ shape.chord }}</p>
+              </div>
+              <button
+                class="px-3 py-1 text-sm rounded bg-amber-500/80 text-slate-900"
+                @click="editShape(shape)"
+              >
+                編集
+              </button>
+            </div>
+            <p class="text-sm text-slate-300">{{ shape.position || 'ポジション未設定' }}</p>
+            <div class="flex justify-between text-xs text-slate-400">
+              <span>開始フレット: {{ shape.diagram.startFret }}F</span>
+              <span>フォーム ID: {{ shape.id }}</span>
+            </div>
+            <div class="grid grid-cols-6 gap-1">
+              <div
+                v-for="(fret, sidx) in shape.diagram.frets"
+                :key="sidx"
+                class="flex flex-col items-center gap-1"
+              >
+                <span class="text-[10px] text-slate-500">{{ 6 - sidx }}弦</span>
+                <span class="w-full text-center py-1 text-xs rounded bg-slate-950 border border-slate-700">{{ fretLabel(fret) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="p-4 rounded-lg bg-slate-900 border border-slate-800">
+        <div class="flex items-center justify-between mb-3">
           <h2 class="text-xl font-semibold">保存済み進行</h2>
           <button @click="fetchProgressions" class="text-sm px-3 py-2 bg-slate-800 border border-slate-700 rounded">再読み込み</button>
         </div>
@@ -183,6 +279,65 @@
         </div>
       </div>
     </div>
+
+    <div
+      v-if="showShapeDialog"
+      class="fixed inset-0 z-30 flex items-center justify-center bg-black/70 px-4"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div class="w-full max-w-2xl p-6 rounded-lg bg-slate-900 border border-slate-800 space-y-4 shadow-xl">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold">コードフォームを{{ editingShapeId ? '編集' : '登録' }}</h3>
+          <button @click="closeShapeDialog" class="text-slate-400 hover:text-white">✕</button>
+        </div>
+        <div class="grid md:grid-cols-2 gap-4">
+          <label class="space-y-1">
+            <p class="text-xs text-slate-400">コード名</p>
+            <input v-model="shapeForm.chord" type="text" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2" placeholder="例: Cmaj7" />
+          </label>
+          <label class="space-y-1">
+            <p class="text-xs text-slate-400">ポジション（任意）</p>
+            <input v-model="shapeForm.position" type="text" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2" placeholder="1フレット付近 など" />
+          </label>
+        </div>
+        <div class="grid grid-cols-3 md:grid-cols-4 gap-4 items-center">
+          <label class="space-y-1">
+            <p class="text-xs text-slate-400">開始フレット</p>
+            <input v-model.number="shapeForm.startFret" type="number" min="1" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2" />
+          </label>
+          <div class="md:col-span-3 space-y-1">
+            <p class="text-xs text-slate-400">フレット指定（6弦 → 1弦 / x はミュート）</p>
+            <div class="grid grid-cols-6 gap-2">
+              <div v-for="(fret, idx) in shapeForm.frets" :key="idx" class="space-y-1">
+                <p class="text-[10px] text-slate-500">{{ 6 - idx }}弦</p>
+                <input
+                  v-model="shapeForm.frets[idx]"
+                  type="text"
+                  class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-2 text-center"
+                  placeholder="x / 0-12"
+                />
+              </div>
+            </div>
+            <p class="text-xs text-slate-400">数字は押さえるフレット番号、x はミュート、空欄はミュートとして扱います。</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between">
+          <button
+            v-if="editingShapeId"
+            @click="deleteShape"
+            class="px-3 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded text-sm"
+          >
+            このフォームを削除
+          </button>
+          <span v-else></span>
+          <div class="flex gap-3">
+            <button @click="closeShapeDialog" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded">キャンセル</button>
+            <button @click="submitShape" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded">保存</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -218,6 +373,10 @@
           currentProgressionId: "",
           showEditDialog: false,
           editForm: { root: "C", quality: "" },
+          shapes: [],
+          showShapeDialog: false,
+          editingShapeId: "",
+          shapeForm: { chord: "", position: "", startFret: 1, frets: ["x", "x", "x", "x", "x", "x"] },
         };
       },
       computed: {
@@ -259,6 +418,33 @@
           if (quality === "dim") return `${base}dim`;
           if (quality === "aug") return `${base}aug`;
           return base;
+        },
+        defaultShapeForm(chord = "") {
+          return { chord, position: "", startFret: 1, frets: ["x", "x", "x", "x", "x", "x"] };
+        },
+        fretLabel(value) {
+          if (value === -1 || value === "-1") return "×";
+          if (value === 0 || value === "0") return "開";
+          return `${value}F`;
+        },
+        shapesForLabel(label) {
+          return this.shapes.filter((shape) => shape.chord === label);
+        },
+        parseFretValue(raw) {
+          const text = String(raw ?? "").trim().toLowerCase();
+          if (text === "" || text === "x") return -1;
+          const num = Number(text);
+          return Number.isFinite(num) ? Math.trunc(num) : -1;
+        },
+        shapePayload() {
+          return {
+            chord: this.shapeForm.chord.trim() || "無題のコード",
+            position: this.shapeForm.position.trim(),
+            diagram: {
+              startFret: Math.max(1, Number(this.shapeForm.startFret) || 1),
+              frets: this.shapeForm.frets.map((f) => this.parseFretValue(f)),
+            },
+          };
         },
         addChord() {
           const label = this.buildLabel(this.newChord.root, this.newChord.quality);
@@ -363,9 +549,67 @@
           this.editingIndex = null;
           this.showEditDialog = false;
         },
+        async fetchShapes() {
+          const res = await fetch("/api/shapes");
+          if (res.ok) {
+            this.shapes = await res.json();
+          }
+        },
+        openShapeDialog(chordLabel = "") {
+          this.shapeForm = this.defaultShapeForm(chordLabel);
+          this.editingShapeId = "";
+          this.showShapeDialog = true;
+        },
+        closeShapeDialog() {
+          this.shapeForm = this.defaultShapeForm();
+          this.editingShapeId = "";
+          this.showShapeDialog = false;
+        },
+        editShape(shape) {
+          this.editingShapeId = shape.id;
+          const frets = (shape.diagram?.frets || []).map((f) => (f === -1 ? "x" : `${f}`));
+          this.shapeForm = {
+            chord: shape.chord,
+            position: shape.position || "",
+            startFret: shape.diagram?.startFret || 1,
+            frets: frets.length === 6 ? frets : this.defaultShapeForm(shape.chord).frets,
+          };
+          this.showShapeDialog = true;
+        },
+        async submitShape() {
+          const payload = this.shapePayload();
+          const hasDiagram = Array.isArray(payload.diagram.frets) && payload.diagram.frets.length === 6;
+          if (!hasDiagram) {
+            alert("6弦分のフレットを入力してください。");
+            return;
+          }
+          const url = this.editingShapeId ? `/api/shapes/${this.editingShapeId}` : "/api/shapes";
+          const method = this.editingShapeId ? "PUT" : "POST";
+          const res = await fetch(url, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) {
+            alert("フォームの保存に失敗しました。");
+            return;
+          }
+          await this.fetchShapes();
+          this.closeShapeDialog();
+        },
+        async deleteShape() {
+          if (!this.editingShapeId) return;
+          if (!confirm("このフォームを削除しますか？")) return;
+          const res = await fetch(`/api/shapes/${this.editingShapeId}`, { method: "DELETE" });
+          if (res.ok) {
+            await this.fetchShapes();
+            this.closeShapeDialog();
+          }
+        },
       },
       mounted() {
         this.fetchProgressions();
+        this.fetchShapes();
       },
     }).mount("#app");
   </script>
