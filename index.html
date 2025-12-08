@@ -94,24 +94,24 @@
                     </div>
                     <div class="space-y-1">
                       <div
-                        v-for="(fret, sidx) in shape.diagram.frets"
-                        :key="sidx"
+                        v-for="stringInfo in stringRows(shape.diagram.frets)"
+                        :key="stringInfo.index"
                         class="flex items-center gap-1 text-[11px]"
                       >
-                        <span class="w-8 text-right text-slate-500">{{ 6 - sidx }}弦</span>
+                        <span class="w-8 text-right text-slate-500">{{ stringInfo.stringNumber }}弦</span>
                         <div class="flex gap-1 flex-1">
                           <div
                             v-for="fretNum in visualFrets(shape)"
-                            :key="`${sidx}-${fretNum}`"
+                            :key="`${stringInfo.index}-${fretNum}`"
                             class="flex-1 relative h-7 rounded border border-slate-800 bg-slate-950/60"
                           >
                             <span
-                              v-if="fret === fretNum"
+                              v-if="stringInfo.fret === fretNum"
                               class="absolute inset-0 m-auto h-4 w-4 rounded-full bg-emerald-400/80 border border-emerald-700"
                             ></span>
                           </div>
                           <div class="w-10 text-center py-1 rounded border border-slate-800 bg-slate-900/60">
-                            {{ fretLabel(fret) }}
+                            {{ fretLabel(stringInfo.fret) }}
                           </div>
                         </div>
                       </div>
@@ -233,12 +233,12 @@
             </div>
             <div class="grid grid-cols-6 gap-1">
               <div
-                v-for="(fret, sidx) in shape.diagram.frets"
-                :key="sidx"
+                v-for="stringInfo in stringRows(shape.diagram.frets)"
+                :key="stringInfo.index"
                 class="flex flex-col items-center gap-1"
               >
-                <span class="text-[10px] text-slate-500">{{ 6 - sidx }}弦</span>
-                <span class="w-full text-center py-1 text-xs rounded bg-slate-950 border border-slate-700">{{ fretLabel(fret) }}</span>
+                <span class="text-[10px] text-slate-500">{{ stringInfo.stringNumber }}弦</span>
+                <span class="w-full text-center py-1 text-xs rounded bg-slate-950 border border-slate-700">{{ fretLabel(stringInfo.fret) }}</span>
               </div>
             </div>
           </div>
@@ -329,12 +329,12 @@
             <input v-model.number="shapeForm.startFret" type="number" min="1" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2" />
           </label>
           <div class="md:col-span-3 space-y-1">
-            <p class="text-xs text-slate-400">フレット指定（6弦 → 1弦 / x はミュート）</p>
+            <p class="text-xs text-slate-400">フレット指定（上から1弦 → 下に6弦 / x はミュート）</p>
             <div class="grid grid-cols-6 gap-2">
-              <div v-for="(fret, idx) in shapeForm.frets" :key="idx" class="space-y-1">
-                <p class="text-[10px] text-slate-500">{{ 6 - idx }}弦</p>
+              <div v-for="stringInfo in stringRows(shapeForm.frets)" :key="stringInfo.index" class="space-y-1">
+                <p class="text-[10px] text-slate-500">{{ stringInfo.stringNumber }}弦</p>
                 <input
-                  v-model="shapeForm.frets[idx]"
+                  v-model="shapeForm.frets[stringInfo.index]"
                   type="text"
                   class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-2 text-center"
                   placeholder="x / 0-12"
@@ -452,6 +452,11 @@
         visualFrets(shape) {
           const start = Math.max(1, shape.diagram?.startFret || 1);
           return Array.from({ length: 4 }, (_, idx) => start + idx);
+        },
+        stringRows(frets = []) {
+          return (frets || [])
+            .map((fret, idx) => ({ stringNumber: 6 - idx, fret, index: idx }))
+            .reverse();
         },
         shapesForLabel(label) {
           return this.shapes.filter((shape) => shape.chord === label);
