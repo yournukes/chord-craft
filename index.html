@@ -21,40 +21,44 @@
       </div>
     </header>
 
-    <section class="grid md:grid-cols-2 gap-6 mb-6">
-      <div class="p-4 rounded-lg bg-slate-900 border border-slate-800 space-y-3">
-        <h2 class="text-xl font-semibold flex items-center gap-2">
-          <span class="w-2 h-2 bg-emerald-400 rounded-full"></span> スケール設定
-        </h2>
-        <div class="grid grid-cols-2 gap-3">
-          <label class="space-y-1">
-            <p class="text-xs text-slate-400">キー</p>
-            <select v-model="selectedKey" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-2">
-              <option v-for="note in rootNotes" :key="note" :value="note">{{ note }}</option>
-            </select>
-          </label>
-          <label class="space-y-1">
-            <p class="text-xs text-slate-400">スケールタイプ</p>
-            <select v-model="selectedMode" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-2">
-              <option v-for="mode in modes" :key="mode" :value="mode">{{ mode }}</option>
-            </select>
-          </label>
+    <main class="space-y-6">
+      <section class="p-4 rounded-lg bg-slate-900 border border-slate-800">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <h2 class="text-xl font-semibold flex items-center gap-2">
+            <span class="w-2 h-2 bg-sky-400 rounded-full"></span> コード進行
+          </h2>
+          <div class="flex items-center gap-2 text-sm text-slate-300">
+            <input v-model="progressionName" type="text" placeholder="進行名" class="bg-slate-800 border border-slate-700 rounded px-3 py-2" />
+            <button @click="saveProgression" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded shadow">保存</button>
+            <button v-if="currentProgressionId" @click="resetProgression" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded">新規</button>
+          </div>
         </div>
-        <div class="space-y-2">
-          <p class="text-xs text-slate-400">ダイアトニックコード</p>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            <div v-for="(chord, idx) in diatonicChords" :key="idx" class="p-3 rounded border border-slate-800 bg-slate-800/70 flex flex-col gap-1">
-              <div class="flex justify-between text-sm">
-                <span class="font-semibold">{{ chord.degree }}</span>
-                <span class="text-emerald-300 font-semibold">{{ chord.name }}</span>
+        <div v-if="chords.length === 0" class="text-sm text-slate-400">進行にコードがありません。左のフォームから追加してください。</div>
+        <div v-else class="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
+          <div
+            v-for="(chord, idx) in chords"
+            :key="idx"
+            class="p-3 rounded border border-slate-800 bg-slate-800/70 space-y-2"
+          >
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-slate-400">{{ degreeLabel(chord) }}</p>
+                <p class="text-lg font-semibold">{{ chord.label }}</p>
               </div>
-              <p class="text-xs text-slate-400">{{ chord.note }}</p>
+              <div class="flex gap-1">
+                <button @click="startEdit(idx)" class="px-2 py-1 text-xs rounded bg-amber-500/80 text-slate-900">編集</button>
+                <button @click="removeChord(idx)" class="px-2 py-1 text-xs rounded bg-rose-500/80 text-slate-900">削除</button>
+              </div>
+            </div>
+            <div class="flex gap-1 text-xs text-slate-300">
+              <button @click="moveChord(idx, -1)" class="flex-1 px-2 py-1 rounded bg-slate-800 border border-slate-700">◀︎</button>
+              <button @click="moveChord(idx, 1)" class="flex-1 px-2 py-1 rounded bg-slate-800 border border-slate-700">▶︎</button>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="p-4 rounded-lg bg-slate-900 border border-slate-800 space-y-3">
+      <section class="p-4 rounded-lg bg-slate-900 border border-slate-800 space-y-3">
         <h2 class="text-xl font-semibold flex items-center gap-2">
           <span class="w-2 h-2 bg-amber-400 rounded-full"></span> コード追加
         </h2>
@@ -86,76 +90,99 @@
           </label>
         </div>
         <div class="flex gap-3">
-          <button @click="addOrUpdateChord" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded shadow">
-            {{ editingIndex !== null ? 'コード更新' : 'コード追加' }}
-          </button>
-          <button v-if="editingIndex !== null" @click="cancelEdit" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded">
-            キャンセル
-          </button>
+          <button @click="addChord" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded shadow">コード追加</button>
         </div>
         <p class="text-xs text-slate-400">スケールに含まれる音は緑でハイライトされます。</p>
-      </div>
-    </section>
+      </section>
 
-    <section class="p-4 rounded-lg bg-slate-900 border border-slate-800 mb-6">
-      <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+      <section class="p-4 rounded-lg bg-slate-900 border border-slate-800 space-y-3">
         <h2 class="text-xl font-semibold flex items-center gap-2">
-          <span class="w-2 h-2 bg-sky-400 rounded-full"></span> コード進行
+          <span class="w-2 h-2 bg-emerald-400 rounded-full"></span> スケール設定
         </h2>
-        <div class="flex items-center gap-2 text-sm text-slate-300">
-          <input v-model="progressionName" type="text" placeholder="進行名" class="bg-slate-800 border border-slate-700 rounded px-3 py-2" />
-          <button @click="saveProgression" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded shadow">保存</button>
-          <button v-if="currentProgressionId" @click="resetProgression" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded">新規</button>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="space-y-1">
+            <p class="text-xs text-slate-400">キー</p>
+            <select v-model="selectedKey" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-2">
+              <option v-for="note in rootNotes" :key="note" :value="note">{{ note }}</option>
+            </select>
+          </label>
+          <label class="space-y-1">
+            <p class="text-xs text-slate-400">スケールタイプ</p>
+            <select v-model="selectedMode" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-2">
+              <option v-for="mode in modes" :key="mode" :value="mode">{{ mode }}</option>
+            </select>
+          </label>
         </div>
-      </div>
-      <div v-if="chords.length === 0" class="text-sm text-slate-400">進行にコードがありません。左のフォームから追加してください。</div>
-      <div v-else class="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
-        <div
-          v-for="(chord, idx) in chords"
-          :key="idx"
-          class="p-3 rounded border border-slate-800 bg-slate-800/70 space-y-2"
-        >
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-xs text-slate-400">{{ degreeLabel(chord) }}</p>
-              <p class="text-lg font-semibold">{{ chord.label }}</p>
-            </div>
-            <div class="flex gap-1">
-              <button @click="startEdit(idx)" class="px-2 py-1 text-xs rounded bg-amber-500/80 text-slate-900">編集</button>
-              <button @click="removeChord(idx)" class="px-2 py-1 text-xs rounded bg-rose-500/80 text-slate-900">削除</button>
+        <div class="space-y-2">
+          <p class="text-xs text-slate-400">ダイアトニックコード</p>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div v-for="(chord, idx) in diatonicChords" :key="idx" class="p-3 rounded border border-slate-800 bg-slate-800/70 flex flex-col gap-1">
+              <div class="flex justify-between text-sm">
+                <span class="font-semibold">{{ chord.degree }}</span>
+                <span class="text-emerald-300 font-semibold">{{ chord.name }}</span>
+              </div>
+              <p class="text-xs text-slate-400">{{ chord.note }}</p>
             </div>
           </div>
-          <div class="flex gap-1 text-xs text-slate-300">
-            <button @click="moveChord(idx, -1)" class="flex-1 px-2 py-1 rounded bg-slate-800 border border-slate-700">◀︎</button>
-            <button @click="moveChord(idx, 1)" class="flex-1 px-2 py-1 rounded bg-slate-800 border border-slate-700">▶︎</button>
-          </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="p-4 rounded-lg bg-slate-900 border border-slate-800">
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="text-xl font-semibold">保存済み進行</h2>
-        <button @click="fetchProgressions" class="text-sm px-3 py-2 bg-slate-800 border border-slate-700 rounded">再読み込み</button>
-      </div>
-      <div v-if="savedProgressions.length === 0" class="text-sm text-slate-400">保存済みの進行はまだありません。</div>
-      <div v-else class="space-y-2">
-        <div
-          v-for="prog in savedProgressions"
-          :key="prog.id"
-          class="flex flex-wrap items-center justify-between gap-3 p-3 rounded border border-slate-800 bg-slate-800/70"
-        >
-          <div>
-            <p class="font-semibold">{{ prog.name }}</p>
-            <p class="text-xs text-slate-400">{{ prog.scale.key }} {{ prog.scale.mode }} / {{ prog.chords.length }} コード</p>
-          </div>
-          <div class="flex gap-2 text-sm">
-            <button @click="loadProgression(prog)" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded">読み込み</button>
-            <button @click="deleteProgression(prog.id)" class="px-3 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded">削除</button>
+      <section class="p-4 rounded-lg bg-slate-900 border border-slate-800">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-xl font-semibold">保存済み進行</h2>
+          <button @click="fetchProgressions" class="text-sm px-3 py-2 bg-slate-800 border border-slate-700 rounded">再読み込み</button>
+        </div>
+        <div v-if="savedProgressions.length === 0" class="text-sm text-slate-400">保存済みの進行はまだありません。</div>
+        <div v-else class="space-y-2">
+          <div
+            v-for="prog in savedProgressions"
+            :key="prog.id"
+            class="flex flex-wrap items-center justify-between gap-3 p-3 rounded border border-slate-800 bg-slate-800/70"
+          >
+            <div>
+              <p class="font-semibold">{{ prog.name }}</p>
+              <p class="text-xs text-slate-400">{{ prog.scale.key }} {{ prog.scale.mode }} / {{ prog.chords.length }} コード</p>
+            </div>
+            <div class="flex gap-2 text-sm">
+              <button @click="loadProgression(prog)" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded">読み込み</button>
+              <button @click="deleteProgression(prog.id)" class="px-3 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded">削除</button>
+            </div>
           </div>
         </div>
+      </section>
+    </main>
+
+    <div
+      v-if="showEditDialog"
+      class="fixed inset-0 z-20 flex items-center justify-center bg-black/60 px-4"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div class="w-full max-w-md p-6 rounded-lg bg-slate-900 border border-slate-800 space-y-4 shadow-xl">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold">コードを編集</h3>
+          <button @click="cancelEdit" class="text-slate-400 hover:text-white">✕</button>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <label class="space-y-1 col-span-1">
+            <p class="text-xs text-slate-400">ルート</p>
+            <select v-model="editForm.root" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-2">
+              <option v-for="note in rootNotes" :key="note" :value="note">{{ note }}</option>
+            </select>
+          </label>
+          <label class="space-y-1 col-span-2">
+            <p class="text-xs text-slate-400">コードタイプ</p>
+            <select v-model="editForm.quality" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-2">
+              <option v-for="quality in chordQualities" :key="quality" :value="quality">{{ quality }}</option>
+            </select>
+          </label>
+        </div>
+        <div class="flex justify-end gap-3">
+          <button @click="cancelEdit" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded">キャンセル</button>
+          <button @click="applyEdit" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-900 rounded">更新</button>
+        </div>
       </div>
-    </section>
+    </div>
   </div>
 
   <script>
@@ -189,6 +216,8 @@
           savedProgressions: [],
           editingIndex: null,
           currentProgressionId: "",
+          showEditDialog: false,
+          editForm: { root: "C", quality: "" },
         };
       },
       computed: {
@@ -231,21 +260,18 @@
           if (quality === "aug") return `${base}aug`;
           return base;
         },
-        addOrUpdateChord() {
+        addChord() {
           const label = this.buildLabel(this.newChord.root, this.newChord.quality);
-          const payload = { ...this.newChord, label };
-          if (this.editingIndex !== null) {
-            this.chords.splice(this.editingIndex, 1, payload);
-            this.editingIndex = null;
-          } else {
-            this.chords.push(payload);
-          }
+          this.chords.push({ ...this.newChord, label });
           this.newChord = { root: this.selectedKey, quality: this.newChord.quality };
         },
         removeChord(index) {
           this.chords.splice(index, 1);
           if (this.chords.length === 0) {
             this.currentProgressionId = "";
+          }
+          if (this.editingIndex === index) {
+            this.cancelEdit();
           }
         },
         moveChord(index, direction) {
@@ -258,11 +284,19 @@
         startEdit(index) {
           this.editingIndex = index;
           const chord = this.chords[index];
-          this.newChord = { root: chord.root, quality: chord.quality };
+          this.editForm = { root: chord.root, quality: chord.quality };
+          this.showEditDialog = true;
+        },
+        applyEdit() {
+          if (this.editingIndex === null) return;
+          const label = this.buildLabel(this.editForm.root, this.editForm.quality);
+          this.chords.splice(this.editingIndex, 1, { ...this.editForm, label });
+          this.cancelEdit();
         },
         cancelEdit() {
+          this.showEditDialog = false;
           this.editingIndex = null;
-          this.newChord = { root: this.selectedKey, quality: "" };
+          this.editForm = { root: this.selectedKey, quality: "" };
         },
         degreeLabel(chord) {
           const idx = this.scaleNotes.indexOf(chord.root);
@@ -310,6 +344,7 @@
           this.chords = prog.chords;
           this.progressionName = prog.name;
           this.currentProgressionId = prog.id;
+          this.cancelEdit();
         },
         async deleteProgression(id) {
           if (!confirm("削除してよろしいですか？")) return;
@@ -326,6 +361,7 @@
           this.progressionName = "";
           this.currentProgressionId = "";
           this.editingIndex = null;
+          this.showEditDialog = false;
         },
       },
       mounted() {
