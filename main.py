@@ -1,4 +1,5 @@
 import json
+import uuid
 from pathlib import Path
 from typing import List, Optional
 
@@ -26,6 +27,10 @@ def save_data(data: dict) -> None:
     DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
     with DATA_PATH.open("w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def generate_id(prefix: str) -> str:
+    return f"{prefix}-{uuid.uuid4().hex[:8]}"
 
 
 class Chord(BaseModel):
@@ -79,11 +84,54 @@ app.add_middleware(
 
 def get_store() -> dict:
     data = load_data()
-    if "progressions" not in data:
-        data["progressions"] = []
-    if "shapes" not in data:
-        data["shapes"] = []
+    changed = False
+
+    for key in ["progressions", "shapes"]:
+        if key not in data or not isinstance(data[key], list):
+            data[key] = []
+            changed = True
+
+    changed = normalize_ids(data, "progressions", "prg") or changed
+    changed = normalize_ids(data, "shapes", "shape", normalizer=normalize_shape_entry) or changed
+
+    if changed:
+        save_data(data)
+
     return data
+
+
+def normalize_shape_entry(entry: dict) -> bool:
+    changed = False
+    chord = str(entry.get("chord", "")).strip()
+    if not chord:
+        chord = "無題のコード"
+    if entry.get("chord") != chord:
+        entry["chord"] = chord
+        changed = True
+    return changed
+
+
+def normalize_ids(data: dict, key: str, prefix: str, normalizer=None) -> bool:
+    if key not in data or not isinstance(data[key], list):
+        return False
+
+    seen_ids = set()
+    changed = False
+
+    for item in data[key]:
+        if not isinstance(item, dict):
+            continue
+
+        item_id = item.get("id")
+        if not item_id or item_id in seen_ids:
+            item["id"] = generate_id(prefix)
+            changed = True
+        seen_ids.add(item["id"])
+
+        if normalizer and normalizer(item):
+            changed = True
+
+    return changed
 
 
 @app.get("/api/progressions", response_model=List[Progression])
@@ -95,9 +143,8 @@ def list_progressions():
 @app.post("/api/progressions", response_model=Progression, status_code=201)
 def create_progression(payload: ProgressionCreate):
     data = get_store()
-    new_id = f"prg-{len(data['progressions']) + 1:04d}"
     progression = Progression(
-        id=new_id,
+        id=generate_id("prg"),
         name=payload.name,
         scale=payload.scale,
         chords=payload.chords,
@@ -143,8 +190,12 @@ def list_shapes():
 @app.post("/api/shapes", response_model=ChordShape, status_code=201)
 def create_shape(payload: ChordShapePayload):
     data = get_store()
-    new_id = f"shape-{len(data['shapes']) + 1:04d}"
-    chord_shape = ChordShape(id=new_id, chord=payload.chord, position=payload.position, diagram=payload.diagram)
+    chord_shape = ChordShape(
+        id=generate_id("shape"),
+        chord=payload.chord.strip() or "無題のコード",
+        position=payload.position,
+        diagram=payload.diagram,
+    )
     data["shapes"].append(chord_shape.dict())
     save_data(data)
     return chord_shape
@@ -155,7 +206,12 @@ def update_shape(shape_id: str, payload: ChordShapePayload):
     data = get_store()
     for idx, existing in enumerate(data["shapes"]):
         if existing.get("id") == shape_id:
-            updated = ChordShape(id=shape_id, chord=payload.chord, position=payload.position, diagram=payload.diagram)
+            updated = ChordShape(
+                id=shape_id,
+                chord=payload.chord.strip() or "無題のコード",
+                position=payload.position,
+                diagram=payload.diagram,
+            )
             data["shapes"][idx] = updated.dict()
             save_data(data)
             return updated
