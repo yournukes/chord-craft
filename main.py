@@ -52,11 +52,19 @@ class ProgressionCreate(BaseModel):
     chords: List[Chord]
 
 
-class ChordShape(BaseModel):
-    id: str = Field(default_factory=lambda: "")
+class Diagram(BaseModel):
+    startFret: int = Field(default=1, ge=1)
+    frets: List[int] = Field(..., min_items=6, max_items=6)
+
+
+class ChordShapePayload(BaseModel):
     chord: str
     position: Optional[str] = None
-    diagram: dict
+    diagram: Diagram
+
+
+class ChordShape(ChordShapePayload):
+    id: str = Field(default_factory=lambda: "")
 
 
 app = FastAPI(title="Chord Craft API")
@@ -133,13 +141,35 @@ def list_shapes():
 
 
 @app.post("/api/shapes", response_model=ChordShape, status_code=201)
-def create_shape(payload: ChordShape):
+def create_shape(payload: ChordShapePayload):
     data = get_store()
     new_id = f"shape-{len(data['shapes']) + 1:04d}"
     chord_shape = ChordShape(id=new_id, chord=payload.chord, position=payload.position, diagram=payload.diagram)
     data["shapes"].append(chord_shape.dict())
     save_data(data)
     return chord_shape
+
+
+@app.put("/api/shapes/{shape_id}", response_model=ChordShape)
+def update_shape(shape_id: str, payload: ChordShapePayload):
+    data = get_store()
+    for idx, existing in enumerate(data["shapes"]):
+        if existing.get("id") == shape_id:
+            updated = ChordShape(id=shape_id, chord=payload.chord, position=payload.position, diagram=payload.diagram)
+            data["shapes"][idx] = updated.dict()
+            save_data(data)
+            return updated
+    raise HTTPException(status_code=404, detail="指定されたフォームが見つかりませんでした。")
+
+
+@app.delete("/api/shapes/{shape_id}", status_code=204)
+def delete_shape(shape_id: str):
+    data = get_store()
+    filtered = [s for s in data["shapes"] if s.get("id") != shape_id]
+    if len(filtered) == len(data["shapes"]):
+        raise HTTPException(status_code=404, detail="指定されたフォームが見つかりませんでした。")
+    data["shapes"] = filtered
+    save_data(data)
 
 
 @app.get("/health")
