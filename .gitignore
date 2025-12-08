@@ -1,0 +1,19 @@
+# Python 環境
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# 仮想環境
+.venv/
+venv/
+
+# エディター関連
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# 実行時に生成されるデータ
+/data/
