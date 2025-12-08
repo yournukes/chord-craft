@@ -84,17 +84,39 @@
                     <span>開始フレット: {{ shape.diagram.startFret }}F</span>
                     <span>コード: {{ shape.chord }}</span>
                   </div>
-                  <div class="grid grid-cols-6 gap-1">
-                    <div
-                      v-for="(fret, sidx) in shape.diagram.frets"
-                      :key="sidx"
-                      class="flex flex-col items-center gap-1"
-                    >
-                      <span class="text-[10px] text-slate-500">{{ 6 - sidx }}弦</span>
-                      <span class="w-full text-center py-1 text-[11px] rounded bg-slate-950 border border-slate-700">
-                        {{ fretLabel(fret) }}
-                      </span>
+                  <div class="space-y-2">
+                    <div class="grid grid-cols-6 gap-1 text-[10px] text-slate-400">
+                      <span class="text-right pr-1">弦</span>
+                      <template v-for="fretNum in visualFrets(shape)" :key="fretNum">
+                        <span class="text-center">{{ fretNum }}F</span>
+                      </template>
+                      <span class="text-center">開放</span>
                     </div>
+                    <div class="space-y-1">
+                      <div
+                        v-for="(fret, sidx) in shape.diagram.frets"
+                        :key="sidx"
+                        class="flex items-center gap-1 text-[11px]"
+                      >
+                        <span class="w-8 text-right text-slate-500">{{ 6 - sidx }}弦</span>
+                        <div class="flex gap-1 flex-1">
+                          <div
+                            v-for="fretNum in visualFrets(shape)"
+                            :key="`${sidx}-${fretNum}`"
+                            class="flex-1 relative h-7 rounded border border-slate-800 bg-slate-950/60"
+                          >
+                            <span
+                              v-if="fret === fretNum"
+                              class="absolute inset-0 m-auto h-4 w-4 rounded-full bg-emerald-400/80 border border-emerald-700"
+                            ></span>
+                          </div>
+                          <div class="w-10 text-center py-1 rounded border border-slate-800 bg-slate-900/60">
+                            {{ fretLabel(fret) }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <p class="text-[10px] text-slate-400">丸印は押さえるポジション、右端は開放 / ミュートの状態です。</p>
                   </div>
                 </div>
               </div>
@@ -426,6 +448,10 @@
           if (value === -1 || value === "-1") return "×";
           if (value === 0 || value === "0") return "開";
           return `${value}F`;
+        },
+        visualFrets(shape) {
+          const start = Math.max(1, shape.diagram?.startFret || 1);
+          return Array.from({ length: 4 }, (_, idx) => start + idx);
         },
         shapesForLabel(label) {
           return this.shapes.filter((shape) => shape.chord === label);
