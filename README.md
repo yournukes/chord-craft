@@ -4,9 +4,32 @@ FastAPI + Vue 3 による単一ページのコード進行メモアプリです�
 
 ## 必要要件
 
-- Docker 環境（ビルドと実行に使用）
+- Python 3.11 以降
+- Docker 環境（コンテナ実行に使用）
 
-## セットアップと起動
+## ローカル環境でのセットアップ（venv）
+
+1. リポジトリ直下で仮想環境を作成し、依存関係をインストールします。
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   python -m pip install --upgrade pip
+   python -m pip install -r requirements.txt
+   ```
+2. アプリを起動します。
+   ```bash
+   uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+   ```
+3. ブラウザで [http://localhost:8000](http://localhost:8000) を開きます。
+
+### Windows の簡易起動
+
+コマンドプロンプトで以下を実行すると、仮想環境の作成・依存関係インストール・サーバー起動をまとめて行います。
+```
+start.bat
+```
+
+## Docker での起動
 
 1. イメージをビルドします。
    ```bash
