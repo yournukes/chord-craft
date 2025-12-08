@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chord Craft</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100">
+  <div id="app" class="max-w-6xl mx-auto px-4 py-6">
+    <header class="flex items-center justify-between gap-4 mb-6">
+      <div>
+        <p class="text-sm text-slate-400">スケールとコード進行を管理するシングルページアプリ</p>
+        <h1 class="text-3xl font-bold">Chord Craft</h1>
+      </div>
+      <div class="flex gap-2 text-sm text-slate-400">
+        <span class="px-2 py-1 bg-slate-800 rounded border border-slate-700">Vue 3 SPA</span>
+        <span class="px-2 py-1 bg-slate-800 rounded border border-slate-700">FastAPI</span>
+        <span class="px-2 py-1 bg-slate-800 rounded border border-slate-700">Docker Ready</span>
+      </div>
+    </header>
+
+    <section class="grid md:grid-cols-2 gap-6 mb-6">
+      <div class="p-4 rounded-lg bg-slate-900 border border-slate-800 space-y-3">
+        <h2 class="text-xl font-semibold flex items-center gap-2">
+          <span class="w-2 h-2 bg-emerald-400 rounded-full"></span> スケール設定
+        </h2>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="space-y-1">
+            <p class="text-xs text-slate-400">キー</p>
+            <select v-model="selectedKey" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-2">
+              <option v-for="note in rootNotes" :key="note" :value="note">{{ note }}</option>
+            </select>
+          </label>
+          <label class="space-y-1">
+            <p class="text-xs text-slate-400">スケールタイプ</p>
+            <select v-model="selectedMode" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-2">
+              <option v-for="mode in modes" :key="mode" :value="mode">{{ mode }}</option>
+            </select>
+          </label>
+        </div>
+        <div class="space-y-2">
+          <p class="text-xs text-slate-400">ダイアトニックコード</p>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div v-for="(chord, idx) in diatonicChords" :key="idx" class="p-3 rounded border border-slate-800 bg-slate-800/70 flex flex-col gap-1">
+              <div class="flex justify-between text-sm">
+                <span class="font-semibold">{{ chord.degree }}</span>
+                <span class="text-emerald-300 font-semibold">{{ chord.name }}</span>
+              </div>
+              <p class="text-xs text-slate-400">{{ chord.note }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-lg bg-slate-900 border border-slate-800 space-y-3">
+        <h2 class="text-xl font-semibold flex items-center gap-2">
+          <span class="w-2 h-2 bg-amber-400 rounded-full"></span> コード追加
+        </h2>
+        <div class="flex flex-wrap gap-2 mb-3">
+          <button
+            v-for="note in rootNotes"
+            :key="note"
+            :class="[
+              'px-3 py-2 rounded border text-sm transition',
+              scaleNotesSet.has(note) ? 'bg-emerald-900/50 border-emerald-500/50 text-emerald-100' : 'bg-slate-800 border-slate-700'
+            ]"
+            @click="newChord.root = note"
+          >
+            {{ note }}
+          </button>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <label class="space-y-1 col-span-1">
+            <p class="text-xs text-slate-400">ルート</p>
+            <select v-model="newChord.root" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-2">
+              <option v-for="note in rootNotes" :key="note" :value="note">{{ note }}</option>
+            </select>
+          </label>
+          <label class="space-y-1 col-span-2">
+            <p class="text-xs text-slate-400">コードタイプ</p>
+            <select v-model="newChord.quality" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-2">
+              <option v-for="quality in chordQualities" :key="quality" :value="quality">{{ quality }}</option>
+            </select>
+          </label>
+        </div>
+        <div class="flex gap-3">
+          <button @click="addOrUpdateChord" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded shadow">
+            {{ editingIndex !== null ? 'コード更新' : 'コード追加' }}
+          </button>
+          <button v-if="editingIndex !== null" @click="cancelEdit" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded">
+            キャンセル
+          </button>
+        </div>
+        <p class="text-xs text-slate-400">スケールに含まれる音は緑でハイライトされます。</p>
+      </div>
+    </section>
+
+    <section class="p-4 rounded-lg bg-slate-900 border border-slate-800 mb-6">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <h2 class="text-xl font-semibold flex items-center gap-2">
+          <span class="w-2 h-2 bg-sky-400 rounded-full"></span> コード進行
+        </h2>
+        <div class="flex items-center gap-2 text-sm text-slate-300">
+          <input v-model="progressionName" type="text" placeholder="進行名" class="bg-slate-800 border border-slate-700 rounded px-3 py-2" />
+          <button @click="saveProgression" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded shadow">保存</button>
+          <button v-if="currentProgressionId" @click="resetProgression" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded">新規</button>
+        </div>
+      </div>
+      <div v-if="chords.length === 0" class="text-sm text-slate-400">進行にコードがありません。左のフォームから追加してください。</div>
+      <div v-else class="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
+        <div
+          v-for="(chord, idx) in chords"
+          :key="idx"
+          class="p-3 rounded border border-slate-800 bg-slate-800/70 space-y-2"
+        >
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs text-slate-400">{{ degreeLabel(chord) }}</p>
+              <p class="text-lg font-semibold">{{ chord.label }}</p>
+            </div>
+            <div class="flex gap-1">
+              <button @click="startEdit(idx)" class="px-2 py-1 text-xs rounded bg-amber-500/80 text-slate-900">編集</button>
+              <button @click="removeChord(idx)" class="px-2 py-1 text-xs rounded bg-rose-500/80 text-slate-900">削除</button>
+            </div>
+          </div>
+          <div class="flex gap-1 text-xs text-slate-300">
+            <button @click="moveChord(idx, -1)" class="flex-1 px-2 py-1 rounded bg-slate-800 border border-slate-700">◀︎</button>
+            <button @click="moveChord(idx, 1)" class="flex-1 px-2 py-1 rounded bg-slate-800 border border-slate-700">▶︎</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="p-4 rounded-lg bg-slate-900 border border-slate-800">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-xl font-semibold">保存済み進行</h2>
+        <button @click="fetchProgressions" class="text-sm px-3 py-2 bg-slate-800 border border-slate-700 rounded">再読み込み</button>
+      </div>
+      <div v-if="savedProgressions.length === 0" class="text-sm text-slate-400">保存済みの進行はまだありません。</div>
+      <div v-else class="space-y-2">
+        <div
+          v-for="prog in savedProgressions"
+          :key="prog.id"
+          class="flex flex-wrap items-center justify-between gap-3 p-3 rounded border border-slate-800 bg-slate-800/70"
+        >
+          <div>
+            <p class="font-semibold">{{ prog.name }}</p>
+            <p class="text-xs text-slate-400">{{ prog.scale.key }} {{ prog.scale.mode }} / {{ prog.chords.length }} コード</p>
+          </div>
+          <div class="flex gap-2 text-sm">
+            <button @click="loadProgression(prog)" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded">読み込み</button>
+            <button @click="deleteProgression(prog.id)" class="px-3 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded">削除</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+    const rootNotes = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+    const scalePatterns = {
+      "メジャー": [2, 2, 1, 2, 2, 2, 1],
+      "ナチュラルマイナー": [2, 1, 2, 2, 1, 2, 2],
+      "ハーモニックマイナー": [2, 1, 2, 2, 1, 3, 1],
+      "メロディックマイナー": [2, 1, 2, 2, 2, 2, 1],
+    };
+    const romanDegrees = ["I", "II", "III", "IV", "V", "VI", "VII"];
+    const diatonicQualities = {
+      "メジャー": ["", "m", "m", "", "", "m", "dim"],
+      "ナチュラルマイナー": ["m", "dim", "", "m", "m", "", ""],
+      "ハーモニックマイナー": ["m", "dim", "aug", "m", "", "", "dim"],
+      "メロディックマイナー": ["m", "m", "aug", "", "", "dim", "dim"],
+    };
+
+    createApp({
+      data() {
+        return {
+          rootNotes,
+          modes: Object.keys(scalePatterns),
+          selectedKey: "C",
+          selectedMode: "メジャー",
+          chordQualities: ["", "m", "dim", "aug", "7", "maj7", "m7", "sus2", "sus4", "add9", "9"],
+          newChord: { root: "C", quality: "" },
+          chords: [],
+          progressionName: "",
+          savedProgressions: [],
+          editingIndex: null,
+          currentProgressionId: "",
+        };
+      },
+      computed: {
+        scaleNotes() {
+          const startIndex = this.rootNotes.indexOf(this.selectedKey);
+          const pattern = scalePatterns[this.selectedMode] || [];
+          const notes = [this.selectedKey];
+          let cursor = startIndex;
+          pattern.forEach((step) => {
+            cursor = (cursor + step) % this.rootNotes.length;
+            notes.push(this.rootNotes[cursor]);
+          });
+          return notes.slice(0, 7);
+        },
+        scaleNotesSet() {
+          return new Set(this.scaleNotes);
+        },
+        diatonicChords() {
+          const qualities = diatonicQualities[this.selectedMode] || [];
+          return this.scaleNotes.map((note, idx) => {
+            const quality = qualities[idx] || "";
+            return {
+              degree: this.degreeName(idx, quality),
+              name: this.buildLabel(note, quality),
+              note,
+              quality,
+            };
+          });
+        },
+      },
+      methods: {
+        buildLabel(root, quality) {
+          if (!quality || quality === "maj") return root;
+          return `${root}${quality}`;
+        },
+        degreeName(index, quality) {
+          const base = romanDegrees[index] || `(${index + 1})`;
+          if (quality === "m") return `${base}m`;
+          if (quality === "dim") return `${base}dim`;
+          if (quality === "aug") return `${base}aug`;
+          return base;
+        },
+        addOrUpdateChord() {
+          const label = this.buildLabel(this.newChord.root, this.newChord.quality);
+          const payload = { ...this.newChord, label };
+          if (this.editingIndex !== null) {
+            this.chords.splice(this.editingIndex, 1, payload);
+            this.editingIndex = null;
+          } else {
+            this.chords.push(payload);
+          }
+          this.newChord = { root: this.selectedKey, quality: this.newChord.quality };
+        },
+        removeChord(index) {
+          this.chords.splice(index, 1);
+          if (this.chords.length === 0) {
+            this.currentProgressionId = "";
+          }
+        },
+        moveChord(index, direction) {
+          const target = index + direction;
+          if (target < 0 || target >= this.chords.length) return;
+          const temp = this.chords[target];
+          this.chords[target] = this.chords[index];
+          this.chords[index] = temp;
+        },
+        startEdit(index) {
+          this.editingIndex = index;
+          const chord = this.chords[index];
+          this.newChord = { root: chord.root, quality: chord.quality };
+        },
+        cancelEdit() {
+          this.editingIndex = null;
+          this.newChord = { root: this.selectedKey, quality: "" };
+        },
+        degreeLabel(chord) {
+          const idx = this.scaleNotes.indexOf(chord.root);
+          if (idx < 0) return "スケール外";
+          return `ディグリー: ${this.degreeName(idx, chord.quality)}`;
+        },
+        progressionPayload() {
+          return {
+            name: this.progressionName || "無題の進行",
+            scale: { key: this.selectedKey, mode: this.selectedMode },
+            chords: this.chords,
+          };
+        },
+        async saveProgression() {
+          if (this.chords.length === 0) {
+            alert("コードを追加してください。");
+            return;
+          }
+          const payload = this.progressionPayload();
+          const url = this.currentProgressionId ? `/api/progressions/${this.currentProgressionId}` : "/api/progressions";
+          const method = this.currentProgressionId ? "PUT" : "POST";
+          const res = await fetch(url, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) {
+            alert("保存に失敗しました。");
+            return;
+          }
+          const data = await res.json();
+          this.currentProgressionId = data.id;
+          this.progressionName = data.name;
+          await this.fetchProgressions();
+        },
+        async fetchProgressions() {
+          const res = await fetch("/api/progressions");
+          if (res.ok) {
+            this.savedProgressions = await res.json();
+          }
+        },
+        loadProgression(prog) {
+          this.selectedKey = prog.scale.key;
+          this.selectedMode = prog.scale.mode;
+          this.chords = prog.chords;
+          this.progressionName = prog.name;
+          this.currentProgressionId = prog.id;
+        },
+        async deleteProgression(id) {
+          if (!confirm("削除してよろしいですか？")) return;
+          const res = await fetch(`/api/progressions/${id}`, { method: "DELETE" });
+          if (res.ok) {
+            if (this.currentProgressionId === id) {
+              this.resetProgression();
+            }
+            await this.fetchProgressions();
+          }
+        },
+        resetProgression() {
+          this.chords = [];
+          this.progressionName = "";
+          this.currentProgressionId = "";
+          this.editingIndex = null;
+        },
+      },
+      mounted() {
+        this.fetchProgressions();
+      },
+    }).mount("#app");
+  </script>
+</body>
+</html>
