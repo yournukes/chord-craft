@@ -32,7 +32,7 @@ if errorlevel 1 goto :error
 echo サーバーを起動します...
 rem 再読み目的のウォッチャが仮想環境下を監視して
 rem pip アップグレードなどで無限再読みが発生するのを防ぐ
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload --reload-exclude ".venv/*"
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload --reload-exclude ".venv"
 if errorlevel 1 goto :error
 
 goto :eof
