@@ -629,11 +629,43 @@
       "メロディックマイナー": [2, 1, 2, 2, 2, 2, 1],
     };
     const romanDegrees = ["I", "II", "III", "IV", "V", "VI", "VII"];
-    const diatonicQualities = {
-      "メジャー": ["", "m", "m", "", "", "m", "dim"],
-      "ナチュラルマイナー": ["m", "dim", "", "m", "m", "", ""],
-      "ハーモニックマイナー": ["m", "dim", "aug", "m", "", "", "dim"],
-      "メロディックマイナー": ["m", "m", "aug", "", "", "dim", "dim"],
+    const diatonicQualityPreferences = {
+      "メジャー": [
+        ["", "maj7"],
+        ["m", "m7"],
+        ["m", "m7"],
+        ["", "maj7"],
+        ["", "7"],
+        ["m", "m7"],
+        ["dim", "m7b5"],
+      ],
+      "ナチュラルマイナー": [
+        ["m", "m7"],
+        ["dim", "m7b5"],
+        ["", "maj7"],
+        ["m", "m7"],
+        ["m", "m7"],
+        ["", "maj7"],
+        ["", "7"],
+      ],
+      "ハーモニックマイナー": [
+        ["m", "m7"],
+        ["dim", "m7b5"],
+        ["aug", "maj7", ""],
+        ["m", "m7"],
+        ["", "7"],
+        ["", "maj7"],
+        ["dim", "dim7"],
+      ],
+      "メロディックマイナー": [
+        ["m", "m7"],
+        ["m", "m7"],
+        ["aug", "maj7", ""],
+        ["", "7"],
+        ["", "7"],
+        ["dim", "m7b5"],
+        ["dim", "m7b5"],
+      ],
     };
     const diatonicRoles = {
       "メジャー": [
@@ -719,7 +751,7 @@
           modes: Object.keys(scalePatterns),
           selectedKey: "C",
           selectedMode: "メジャー",
-          chordQualities: ["", "m", "dim", "aug", "7", "maj7", "m7", "sus2", "sus4", "add9", "9"],
+          chordQualities: ["", "m", "dim", "aug", "7", "maj7", "m7", "m7b5", "dim7", "sus2", "sus4", "add9", "9"],
           newChord: { root: "C", quality: "", bass: "" },
           chords: [],
           progressionView: "detail",
@@ -734,6 +766,25 @@
           editingShapeId: "",
           shapeForm: { chord: "", position: "", startFret: 1, frets: ["x", "x", "x", "x", "x", "x"] },
         };
+      },
+      watch: {
+        selectedKey() {
+          this.syncNewChordQuality();
+          this.syncEditQuality();
+        },
+        selectedMode() {
+          this.syncNewChordQuality();
+          this.syncEditQuality();
+        },
+        "newChord.root": {
+          handler() {
+            this.syncNewChordQuality();
+          },
+          immediate: true,
+        },
+        "editForm.root"() {
+          this.syncEditQuality();
+        },
       },
       computed: {
         scaleNotes() {
@@ -757,11 +808,10 @@
           return [...diatonic, ...remaining];
         },
         diatonicChords() {
-          const qualities = diatonicQualities[this.selectedMode] || [];
           const roles = diatonicRoles[this.selectedMode] || [];
           const roleDescriptions = diatonicRoleDescriptions[this.selectedMode] || [];
           return this.scaleNotes.map((note, idx) => {
-            const quality = qualities[idx] || "";
+            const quality = this.diatonicQualityAtIndex(idx);
             return {
               degree: this.degreeName(idx, quality),
               name: this.buildLabel(note, quality),
@@ -781,6 +831,8 @@
         },
         degreeName(index, quality) {
           const base = romanDegrees[index] || `(${index + 1})`;
+          if (quality === "m7b5") return `${base}ø7`;
+          if (["maj7", "m7", "7", "dim7"].includes(quality)) return `${base}${quality}`;
           if (quality === "m") return `${base}m`;
           if (quality === "dim") return `${base}dim`;
           if (quality === "aug") return `${base}aug`;
@@ -790,6 +842,18 @@
           const idx = this.scaleNotes.indexOf(chord.root);
           if (idx < 0) return "スケール外";
           return this.degreeName(idx, chord.quality);
+        },
+        diatonicQualityAtIndex(index) {
+          const preferences = diatonicQualityPreferences[this.selectedMode] || [];
+          const candidates = preferences[index] || [""];
+          const available = new Set(this.chordQualities);
+          const selected = candidates.find((quality) => available.has(quality)) || candidates[0] || "";
+          return selected;
+        },
+        diatonicQualityForRoot(note) {
+          const idx = this.scaleNotes.indexOf(note);
+          if (idx < 0) return "";
+          return this.diatonicQualityAtIndex(idx);
         },
         defaultShapeForm(chord = "") {
           return { chord, position: "", startFret: 1, frets: ["x", "x", "x", "x", "x", "x"] };
@@ -862,6 +926,15 @@
           if (parsed === 0) return `${this.noteNameForString(stringIndex, 0)}開`;
           return `${parsed}F`;
         },
+        syncNewChordQuality() {
+          const quality = this.diatonicQualityForRoot(this.newChord.root);
+          this.newChord.quality = quality;
+        },
+        syncEditQuality() {
+          if (!this.showEditDialog) return;
+          const quality = this.diatonicQualityForRoot(this.editForm.root);
+          this.editForm.quality = quality;
+        },
         shapePayload() {
           return {
             chord: this.shapeForm.chord.trim() || "無題のコード",
@@ -875,7 +948,8 @@
         addChord() {
           const label = this.buildLabel(this.newChord.root, this.newChord.quality, this.newChord.bass);
           this.chords.push({ ...this.newChord, label });
-          this.newChord = { root: this.selectedKey, quality: this.newChord.quality, bass: "" };
+          const resetQuality = this.diatonicQualityForRoot(this.selectedKey);
+          this.newChord = { root: this.selectedKey, quality: resetQuality, bass: "" };
         },
         removeChord(index) {
           this.chords.splice(index, 1);
