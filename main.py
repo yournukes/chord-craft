@@ -1,4 +1,5 @@
 import json
+import os
 import uuid
 from pathlib import Path
 from typing import List, Optional
@@ -240,3 +241,10 @@ def serve_index():
     if not index_path.exists():
         raise HTTPException(status_code=404, detail="フロントエンドが見つかりませんでした。")
     return FileResponse(index_path)
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
