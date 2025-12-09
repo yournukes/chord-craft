@@ -149,7 +149,7 @@
             </div>
           </div>
         </div>
-        <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+        <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
           <div
             v-for="(chord, idx) in chords"
             :key="idx"
@@ -165,74 +165,78 @@
                 <button @click="removeChord(idx)" class="px-2 py-1 rounded bg-rose-500/80 text-slate-900">削除</button>
               </div>
             </div>
-            <p class="text-base font-semibold leading-tight">{{ chord.label }}</p>
-            <div class="flex gap-1 text-[11px] text-slate-200">
-              <button @click="moveChord(idx, -1)" class="flex-1 px-2 py-1 rounded bg-slate-800 border border-slate-700">◀︎</button>
-              <button @click="moveChord(idx, 1)" class="flex-1 px-2 py-1 rounded bg-slate-800 border border-slate-700">▶︎</button>
-            </div>
-            <div class="space-y-1">
-              <div class="flex items-center justify-between">
-                <span class="text-slate-300">フォーム</span>
-                <button
-                  class="px-2 py-1 rounded bg-sky-600/80 hover:bg-sky-500 text-slate-50 text-[11px]"
-                  @click="openShapeDialog(chord.label)"
-                >
-                  登録
-                </button>
+            <div class="flex items-start gap-3">
+              <div class="w-32 space-y-2 flex-shrink-0">
+                <p class="text-base font-semibold leading-tight">{{ chord.label }}</p>
+                <div class="flex gap-1 text-[11px] text-slate-200">
+                  <button @click="moveChord(idx, -1)" class="flex-1 px-2 py-1 rounded bg-slate-800 border border-slate-700">◀︎</button>
+                  <button @click="moveChord(idx, 1)" class="flex-1 px-2 py-1 rounded bg-slate-800 border border-slate-700">▶︎</button>
+                </div>
               </div>
-              <div v-if="shapesForLabel(chord.label).length === 0" class="text-slate-400">未登録です。</div>
-              <div v-else class="space-y-1">
-                <div
-                  v-for="shape in shapesForLabel(chord.label)"
-                  :key="shape.id"
-                  class="p-2 rounded border border-slate-700 bg-slate-900/70 space-y-1"
-                >
-                  <div class="flex items-center justify-between gap-2">
-                    <div class="space-y-0.5">
-                      <p class="font-semibold text-slate-100">{{ shape.position || 'ポジション未設定' }}</p>
-                      <p class="text-[11px] text-slate-400">開始フレット: {{ shape.diagram.startFret }}F</p>
-                    </div>
-                    <button
-                      class="text-[11px] px-2 py-1 rounded bg-amber-500/80 text-slate-900"
-                      @click="editShape(shape)"
-                    >
-                      編集
-                    </button>
-                  </div>
-                  <div class="space-y-1">
-                    <div class="grid grid-cols-6 gap-1 text-[9px] text-slate-500">
-                      <span class="text-right pr-1">弦</span>
-                      <template v-for="fretNum in visualFrets(shape)" :key="`mini-head-${fretNum}`">
-                        <span class="text-center">{{ fretColumnName(fretNum) }}</span>
-                      </template>
-                      <span class="text-center">開放</span>
-                    </div>
-                    <div class="space-y-0.5">
-                      <div
-                        v-for="stringInfo in stringRows(shape.diagram.frets)"
-                        :key="`mini-${stringInfo.index}`"
-                        class="flex items-center gap-1 text-[10px]"
+              <div class="flex-1 space-y-1">
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-300">フォーム</span>
+                  <button
+                    class="px-2 py-1 rounded bg-sky-600/80 hover:bg-sky-500 text-slate-50 text-[11px]"
+                    @click="openShapeDialog(chord.label)"
+                  >
+                    登録
+                  </button>
+                </div>
+                <div v-if="shapesForLabel(chord.label).length === 0" class="text-slate-400">未登録です。</div>
+                <div v-else class="space-y-1">
+                  <div
+                    v-for="shape in shapesForLabel(chord.label)"
+                    :key="shape.id"
+                    class="p-2 rounded border border-slate-700 bg-slate-900/70 space-y-1"
+                  >
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="space-y-0.5">
+                        <p class="font-semibold text-slate-100 hidden sm:block">{{ shape.position || 'ポジション未設定' }}</p>
+                        <p class="text-[11px] text-slate-400">開始フレット: {{ shape.diagram.startFret }}F</p>
+                      </div>
+                      <button
+                        class="text-[11px] px-2 py-1 rounded bg-amber-500/80 text-slate-900"
+                        @click="editShape(shape)"
                       >
-                        <span class="w-6 text-right text-slate-500">{{ stringInfo.stringNumber }}</span>
-                        <div class="flex gap-1 flex-1">
-                          <div
-                            v-for="fretNum in visualFrets(shape)"
-                            :key="`mini-${stringInfo.index}-${fretNum}`"
-                            class="flex-1 h-5 rounded border border-slate-800 bg-slate-950/70 relative overflow-hidden"
-                          >
-                            <span
-                              v-if="isPressedFret(stringInfo.fret, fretNum)"
-                              class="absolute inset-0 m-auto h-3 w-3 rounded-full bg-emerald-400/70 border border-emerald-500"
-                            ></span>
-                          </div>
-                          <div class="w-10 text-center text-[10px] px-1 py-0.5 rounded border border-slate-800 bg-slate-900/60">
-                            {{ miniFretLabel(stringInfo.fret, stringInfo.index) }}
+                        編集
+                      </button>
+                    </div>
+                    <div class="space-y-1">
+                      <div class="hidden sm:grid grid-cols-6 gap-1 text-[9px] text-slate-500">
+                        <span class="text-right pr-1">弦</span>
+                        <template v-for="fretNum in visualFrets(shape)" :key="`mini-head-${fretNum}`">
+                          <span class="text-center">{{ fretColumnName(fretNum) }}</span>
+                        </template>
+                        <span class="text-center">開放</span>
+                      </div>
+                      <div class="space-y-0.5">
+                        <div
+                          v-for="stringInfo in stringRows(shape.diagram.frets)"
+                          :key="`mini-${stringInfo.index}`"
+                          class="flex items-center gap-1 text-[10px]"
+                        >
+                          <span class="w-6 text-right text-slate-500 hidden sm:inline-block">{{ stringInfo.stringNumber }}</span>
+                          <div class="flex gap-1 flex-1">
+                            <div
+                              v-for="fretNum in visualFrets(shape)"
+                              :key="`mini-${stringInfo.index}-${fretNum}`"
+                              class="flex-1 h-5 rounded border border-slate-800 bg-slate-950/70 relative overflow-hidden"
+                            >
+                              <span
+                                v-if="isPressedFret(stringInfo.fret, fretNum)"
+                                class="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-400/70 border border-emerald-500"
+                              ></span>
+                            </div>
+                            <div class="w-10 text-center text-[10px] px-1 py-0.5 rounded border border-slate-800 bg-slate-900/60">
+                              {{ miniFretLabel(stringInfo.fret, stringInfo.index) }}
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
+                    <p class="text-[10px] text-slate-500 hidden sm:block">押さえる位置は詳細表示で確認できます。</p>
                   </div>
-                  <p class="text-[10px] text-slate-500">押さえる位置は詳細表示で確認できます。</p>
                 </div>
               </div>
             </div>
@@ -246,7 +250,7 @@
         </h2>
         <div class="flex flex-wrap gap-2 mb-3">
           <button
-            v-for="note in rootNotes"
+            v-for="note in orderedRootNotes"
             :key="note"
             :class="[
               'px-3 py-2 rounded border text-sm transition',
@@ -681,6 +685,12 @@
         },
         scaleNotesSet() {
           return new Set(this.scaleNotes);
+        },
+        orderedRootNotes() {
+          const diatonic = this.scaleNotes;
+          const set = new Set(diatonic);
+          const remaining = this.rootNotes.filter((note) => !set.has(note));
+          return [...diatonic, ...remaining];
         },
         diatonicChords() {
           const qualities = diatonicQualities[this.selectedMode] || [];
