@@ -199,6 +199,39 @@
                       編集
                     </button>
                   </div>
+                  <div class="space-y-1">
+                    <div class="grid grid-cols-6 gap-1 text-[9px] text-slate-500">
+                      <span class="text-right pr-1">弦</span>
+                      <template v-for="fretNum in visualFrets(shape)" :key="`mini-head-${fretNum}`">
+                        <span class="text-center">{{ fretColumnName(fretNum) }}</span>
+                      </template>
+                      <span class="text-center">開放</span>
+                    </div>
+                    <div class="space-y-0.5">
+                      <div
+                        v-for="stringInfo in stringRows(shape.diagram.frets)"
+                        :key="`mini-${stringInfo.index}`"
+                        class="flex items-center gap-1 text-[10px]"
+                      >
+                        <span class="w-6 text-right text-slate-500">{{ stringInfo.stringNumber }}</span>
+                        <div class="flex gap-1 flex-1">
+                          <div
+                            v-for="fretNum in visualFrets(shape)"
+                            :key="`mini-${stringInfo.index}-${fretNum}`"
+                            class="flex-1 h-5 rounded border border-slate-800 bg-slate-950/70 relative overflow-hidden"
+                          >
+                            <span
+                              v-if="isPressedFret(stringInfo.fret, fretNum)"
+                              class="absolute inset-0 m-auto h-3 w-3 rounded-full bg-emerald-400/70 border border-emerald-500"
+                            ></span>
+                          </div>
+                          <div class="w-10 text-center text-[10px] px-1 py-0.5 rounded border border-slate-800 bg-slate-900/60">
+                            {{ miniFretLabel(stringInfo.fret, stringInfo.index) }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   <div class="flex flex-wrap gap-1">
                     <span
                       v-for="badge in shapeCompactBadges(shape)"
@@ -707,6 +740,15 @@
           const num = Number(text);
           return Number.isFinite(num) ? Math.trunc(num) : -1;
         },
+        isPressedFret(fretValue, targetFret) {
+          return this.parseFretValue(fretValue) === targetFret;
+        },
+        miniFretLabel(fretValue, stringIndex) {
+          const parsed = this.parseFretValue(fretValue);
+          if (parsed === -1) return "×";
+          if (parsed === 0) return `${this.noteNameForString(stringIndex, 0)}開`;
+          return `${parsed}F`;
+        },
         shapeCompactBadges(shape) {
           const frets = shape.diagram?.frets || [];
           return frets
@@ -714,6 +756,7 @@
               const value = this.parseFretValue(fret);
               const stringNumber = 6 - idx;
               if (value === -1) return `${stringNumber}弦:×`;
+              if (value === 0) return `${stringNumber}弦:開放`;
               if (value > 0) return `${stringNumber}弦:${value}F`;
               return null;
             })
