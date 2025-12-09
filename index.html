@@ -225,41 +225,24 @@
         </div>
         <p class="text-sm text-slate-400 mb-3">指板上の押さえ方を登録しておくと、進行のカード内でいつでも確認・編集できます。</p>
         <div v-if="shapes.length === 0" class="text-sm text-slate-400">まだフォームがありません。</div>
-        <div v-else class="grid md:grid-cols-2 gap-3">
+        <div v-else class="space-y-2">
           <div
             v-for="shape in shapes"
             :key="shape.id"
-            class="p-3 rounded border border-slate-800 bg-slate-800/70 space-y-2"
+            class="p-3 rounded border border-slate-800 bg-slate-800/70 flex flex-wrap items-center justify-between gap-3"
           >
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-xs text-slate-400">コード</p>
-                <p class="text-lg font-semibold">{{ shape.chord }}</p>
-              </div>
-              <button
-                class="px-3 py-1 text-sm rounded bg-amber-500/80 text-slate-900"
-                @click="editShape(shape)"
-              >
-                編集
-              </button>
+            <div class="space-y-1">
+              <p class="text-xs text-slate-400">コード名</p>
+              <p class="text-lg font-semibold">{{ shape.chord }}</p>
+              <p class="text-sm text-slate-300">{{ shape.position || 'ポジション未設定' }}</p>
+              <p class="text-xs text-slate-400">開始フレット: {{ shape.diagram.startFret }}F</p>
             </div>
-            <p class="text-sm text-slate-300">{{ shape.position || 'ポジション未設定' }}</p>
-            <div class="flex justify-between text-xs text-slate-400">
-              <span>開始フレット: {{ shape.diagram.startFret }}F</span>
-              <span>フォーム ID: {{ shape.id }}</span>
-            </div>
-            <div class="grid grid-cols-6 gap-1">
-              <div
-                v-for="stringInfo in stringRows(shape.diagram.frets)"
-                :key="stringInfo.index"
-                class="flex flex-col items-center gap-1"
-              >
-                <span class="text-[10px] text-slate-500">{{ stringInfo.stringNumber }}弦</span>
-                <span class="w-full text-center py-1 text-xs rounded bg-slate-950 border border-slate-700">
-                  {{ fretNoteLabel(stringInfo.index, stringInfo.fret) }}
-                </span>
-              </div>
-            </div>
+            <button
+              class="px-3 py-1 text-sm rounded bg-amber-500/80 text-slate-900"
+              @click="editShape(shape)"
+            >
+              編集
+            </button>
           </div>
         </div>
       </section>
