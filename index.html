@@ -735,6 +735,25 @@
           shapeForm: { chord: "", position: "", startFret: 1, frets: ["x", "x", "x", "x", "x", "x"] },
         };
       },
+      watch: {
+        selectedKey() {
+          this.syncNewChordQuality();
+          this.syncEditQuality();
+        },
+        selectedMode() {
+          this.syncNewChordQuality();
+          this.syncEditQuality();
+        },
+        "newChord.root": {
+          handler() {
+            this.syncNewChordQuality();
+          },
+          immediate: true,
+        },
+        "editForm.root"() {
+          this.syncEditQuality();
+        },
+      },
       computed: {
         scaleNotes() {
           const startIndex = this.rootNotes.indexOf(this.selectedKey);
@@ -790,6 +809,12 @@
           const idx = this.scaleNotes.indexOf(chord.root);
           if (idx < 0) return "スケール外";
           return this.degreeName(idx, chord.quality);
+        },
+        diatonicQualityForRoot(note) {
+          const idx = this.scaleNotes.indexOf(note);
+          if (idx < 0) return "";
+          const qualities = diatonicQualities[this.selectedMode] || [];
+          return qualities[idx] || "";
         },
         defaultShapeForm(chord = "") {
           return { chord, position: "", startFret: 1, frets: ["x", "x", "x", "x", "x", "x"] };
@@ -862,6 +887,15 @@
           if (parsed === 0) return `${this.noteNameForString(stringIndex, 0)}開`;
           return `${parsed}F`;
         },
+        syncNewChordQuality() {
+          const quality = this.diatonicQualityForRoot(this.newChord.root);
+          this.newChord.quality = quality;
+        },
+        syncEditQuality() {
+          if (!this.showEditDialog) return;
+          const quality = this.diatonicQualityForRoot(this.editForm.root);
+          this.editForm.quality = quality;
+        },
         shapePayload() {
           return {
             chord: this.shapeForm.chord.trim() || "無題のコード",
@@ -875,7 +909,8 @@
         addChord() {
           const label = this.buildLabel(this.newChord.root, this.newChord.quality, this.newChord.bass);
           this.chords.push({ ...this.newChord, label });
-          this.newChord = { root: this.selectedKey, quality: this.newChord.quality, bass: "" };
+          const resetQuality = this.diatonicQualityForRoot(this.selectedKey);
+          this.newChord = { root: this.selectedKey, quality: resetQuality, bass: "" };
         },
         removeChord(index) {
           this.chords.splice(index, 1);
