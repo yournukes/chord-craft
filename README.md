@@ -20,6 +20,10 @@ FastAPI + Vue 3 による単一ページのコード進行メモアプリです�
    ```bash
    uvicorn main:app --host 0.0.0.0 --port 8000 --reload
    ```
+   または開発中に簡易起動したい場合は、以下で同じくローカルネットワークからアクセス可能な状態で立ち上げられます（`PORT` 環境変数でポート変更可）。
+   ```bash
+   python main.py
+   ```
 3. ブラウザで [http://localhost:8000](http://localhost:8000) を開きます。
 
 ### Windows の簡易起動
