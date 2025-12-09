@@ -346,25 +346,52 @@
             <input v-model="shapeForm.position" type="text" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2" placeholder="1フレット付近 など" />
           </label>
         </div>
-        <div class="grid grid-cols-3 md:grid-cols-4 gap-4 items-center">
-          <label class="space-y-1">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+          <label class="space-y-1 md:col-span-1">
             <p class="text-xs text-slate-400">開始フレット</p>
-            <input v-model.number="shapeForm.startFret" type="number" min="1" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2" />
+            <input
+              v-model.number="shapeForm.startFret"
+              type="number"
+              min="1"
+              class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2"
+            />
           </label>
-          <div class="md:col-span-3 space-y-1">
-            <p class="text-xs text-slate-400">フレット指定（上から1弦 → 下に6弦 / x はミュート）</p>
-            <div class="grid grid-cols-6 gap-2">
-              <div v-for="stringInfo in stringRows(shapeForm.frets)" :key="stringInfo.index" class="space-y-1">
-                <p class="text-[10px] text-slate-500">{{ stringInfo.stringNumber }}弦</p>
-                <input
-                  v-model="shapeForm.frets[stringInfo.index]"
-                  type="text"
-                  class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-2 text-center"
-                  placeholder="x / 0-12"
-                />
+          <div class="md:col-span-3 space-y-2">
+            <p class="text-xs text-slate-400">指板をクリックして押さえるポジションを指定（0F ボタンで開放 / ミュート切替）</p>
+            <div class="overflow-x-auto">
+              <div class="min-w-[520px] space-y-2">
+                <div class="grid grid-cols-6 gap-2 text-[11px] text-slate-400">
+                  <span class="text-right pr-1">弦</span>
+                  <template v-for="fretNum in editableFrets()" :key="`head-${fretNum}`">
+                    <span class="text-center">{{ fretNum === 0 ? '0F (開放/ミュート)' : `${fretNum}F` }}</span>
+                  </template>
+                </div>
+                <div
+                  v-for="stringInfo in stringRows(shapeForm.frets)"
+                  :key="stringInfo.index"
+                  class="grid grid-cols-6 gap-2 items-center"
+                >
+                  <span class="text-right text-slate-500 text-[11px]">{{ stringInfo.stringNumber }}弦</span>
+                  <template v-for="fretNum in editableFrets()" :key="`${stringInfo.index}-${fretNum}`">
+                    <button
+                      type="button"
+                      class="h-10 rounded border text-sm transition flex items-center justify-center"
+                      :class="[
+                        fretNum === 0 ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-900/70 border-slate-800',
+                        isSelectedFret(stringInfo.index, fretNum)
+                          ? 'ring-2 ring-emerald-400/80 border-emerald-400 bg-emerald-900/50 text-emerald-50'
+                          : 'hover:bg-slate-800'
+                      ]"
+                      @click="selectFret(stringInfo.index, fretNum)"
+                    >
+                      <span v-if="fretNum === 0">{{ openMuteLabel(stringInfo.index) }}</span>
+                      <span v-else>{{ fretNum }}F</span>
+                    </button>
+                  </template>
+                </div>
               </div>
             </div>
-            <p class="text-xs text-slate-400">数字は押さえるフレット番号、x はミュート、空欄はミュートとして扱います。</p>
+            <p class="text-xs text-slate-400">開放弦は0、ミュートは×として保存されます。</p>
           </div>
         </div>
         <div class="flex items-center justify-between">
@@ -521,6 +548,28 @@
           return (frets || [])
             .map((fret, idx) => ({ stringNumber: 6 - idx, fret, index: idx }))
             .reverse();
+        },
+        editableFrets() {
+          const start = Math.max(1, Number(this.shapeForm.startFret) || 1);
+          return [0, ...Array.from({ length: 4 }, (_, idx) => start + idx)];
+        },
+        isSelectedFret(stringIndex, fretNumber) {
+          const current = this.parseFretValue(this.shapeForm.frets[stringIndex]);
+          return current === fretNumber;
+        },
+        openMuteLabel(stringIndex) {
+          const current = this.parseFretValue(this.shapeForm.frets[stringIndex]);
+          if (current === 0) return "開放";
+          if (current === -1) return "ミュート";
+          return "未設定";
+        },
+        selectFret(stringIndex, fretNumber) {
+          if (fretNumber === 0) {
+            const current = this.parseFretValue(this.shapeForm.frets[stringIndex]);
+            this.shapeForm.frets[stringIndex] = current === 0 ? "x" : "0";
+            return;
+          }
+          this.shapeForm.frets[stringIndex] = `${fretNumber}`;
         },
         shapesForLabel(label) {
           return this.shapes.filter((shape) => shape.chord === label);
