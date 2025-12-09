@@ -37,6 +37,7 @@ class Chord(BaseModel):
     root: str
     quality: str
     label: str
+    bass: Optional[str] = None
 
 
 class ScaleInfo(BaseModel):

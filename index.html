@@ -142,17 +142,24 @@
             {{ note }}
           </button>
         </div>
-        <div class="grid grid-cols-3 gap-3">
-          <label class="space-y-1 col-span-1">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <label class="space-y-1">
             <p class="text-xs text-slate-400">ルート</p>
             <select v-model="newChord.root" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-2">
               <option v-for="note in rootNotes" :key="note" :value="note">{{ note }}</option>
             </select>
           </label>
-          <label class="space-y-1 col-span-2">
+          <label class="space-y-1">
             <p class="text-xs text-slate-400">コードタイプ</p>
             <select v-model="newChord.quality" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-2">
               <option v-for="quality in chordQualities" :key="quality" :value="quality">{{ quality }}</option>
+            </select>
+          </label>
+          <label class="space-y-1">
+            <p class="text-xs text-slate-400">オンベース（任意）</p>
+            <select v-model="newChord.bass" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-2">
+              <option value="">（なし）</option>
+              <option v-for="note in rootNotes" :key="note" :value="note">{{ note }}</option>
             </select>
           </label>
         </div>
@@ -290,17 +297,24 @@
           <h3 class="text-lg font-semibold">コードを編集</h3>
           <button @click="cancelEdit" class="text-slate-400 hover:text-white">✕</button>
         </div>
-        <div class="grid grid-cols-3 gap-3">
-          <label class="space-y-1 col-span-1">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <label class="space-y-1">
             <p class="text-xs text-slate-400">ルート</p>
             <select v-model="editForm.root" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-2">
               <option v-for="note in rootNotes" :key="note" :value="note">{{ note }}</option>
             </select>
           </label>
-          <label class="space-y-1 col-span-2">
+          <label class="space-y-1">
             <p class="text-xs text-slate-400">コードタイプ</p>
             <select v-model="editForm.quality" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-2">
               <option v-for="quality in chordQualities" :key="quality" :value="quality">{{ quality }}</option>
+            </select>
+          </label>
+          <label class="space-y-1">
+            <p class="text-xs text-slate-400">オンベース（任意）</p>
+            <select v-model="editForm.bass" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-2">
+              <option value="">（なし）</option>
+              <option v-for="note in rootNotes" :key="note" :value="note">{{ note }}</option>
             </select>
           </label>
         </div>
@@ -434,14 +448,14 @@
           selectedKey: "C",
           selectedMode: "メジャー",
           chordQualities: ["", "m", "dim", "aug", "7", "maj7", "m7", "sus2", "sus4", "add9", "9"],
-          newChord: { root: "C", quality: "" },
+          newChord: { root: "C", quality: "", bass: "" },
           chords: [],
           progressionName: "",
           savedProgressions: [],
           editingIndex: null,
           currentProgressionId: "",
           showEditDialog: false,
-          editForm: { root: "C", quality: "" },
+          editForm: { root: "C", quality: "", bass: "" },
           shapes: [],
           showShapeDialog: false,
           editingShapeId: "",
@@ -479,9 +493,10 @@
         },
       },
       methods: {
-        buildLabel(root, quality) {
-          if (!quality || quality === "maj") return root;
-          return `${root}${quality}`;
+        buildLabel(root, quality, bass = "") {
+          const base = !quality || quality === "maj" ? root : `${root}${quality}`;
+          if (!bass) return base;
+          return `${base}/${bass}`;
         },
         degreeName(index, quality) {
           const base = romanDegrees[index] || `(${index + 1})`;
@@ -527,9 +542,9 @@
           };
         },
         addChord() {
-          const label = this.buildLabel(this.newChord.root, this.newChord.quality);
+          const label = this.buildLabel(this.newChord.root, this.newChord.quality, this.newChord.bass);
           this.chords.push({ ...this.newChord, label });
-          this.newChord = { root: this.selectedKey, quality: this.newChord.quality };
+          this.newChord = { root: this.selectedKey, quality: this.newChord.quality, bass: "" };
         },
         removeChord(index) {
           this.chords.splice(index, 1);
@@ -550,19 +565,19 @@
         startEdit(index) {
           this.editingIndex = index;
           const chord = this.chords[index];
-          this.editForm = { root: chord.root, quality: chord.quality };
+          this.editForm = { root: chord.root, quality: chord.quality, bass: chord.bass || "" };
           this.showEditDialog = true;
         },
         applyEdit() {
           if (this.editingIndex === null) return;
-          const label = this.buildLabel(this.editForm.root, this.editForm.quality);
+          const label = this.buildLabel(this.editForm.root, this.editForm.quality, this.editForm.bass);
           this.chords.splice(this.editingIndex, 1, { ...this.editForm, label });
           this.cancelEdit();
         },
         cancelEdit() {
           this.showEditDialog = false;
           this.editingIndex = null;
-          this.editForm = { root: this.selectedKey, quality: "" };
+          this.editForm = { root: this.selectedKey, quality: "", bass: "" };
         },
         degreeLabel(chord) {
           const idx = this.scaleNotes.indexOf(chord.root);
