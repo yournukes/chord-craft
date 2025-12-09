@@ -9,16 +9,8 @@
 </head>
 <body class="bg-slate-950 text-slate-100">
   <div id="app" class="max-w-6xl mx-auto px-4 py-6">
-    <header class="flex items-center justify-between gap-4 mb-6">
-      <div>
-        <p class="text-sm text-slate-400">スケールとコード進行を管理するシングルページアプリ</p>
-        <h1 class="text-3xl font-bold">Chord Craft</h1>
-      </div>
-      <div class="flex gap-2 text-sm text-slate-400">
-        <span class="px-2 py-1 bg-slate-800 rounded border border-slate-700">Vue 3 SPA</span>
-        <span class="px-2 py-1 bg-slate-800 rounded border border-slate-700">FastAPI</span>
-        <span class="px-2 py-1 bg-slate-800 rounded border border-slate-700">Docker Ready</span>
-      </div>
+    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
+      <h1 class="text-3xl font-bold">Chord Craft</h1>
     </header>
 
     <main class="space-y-6">
@@ -109,40 +101,63 @@
                     <span>開始フレット: {{ shape.diagram.startFret }}F</span>
                     <span>コード: {{ shape.chord }}</span>
                   </div>
-                  <div class="space-y-2">
-                    <div class="grid grid-cols-6 gap-1 text-[10px] text-slate-400">
-                      <span class="text-right pr-1">弦</span>
-                      <template v-for="fretNum in visualFrets(shape)" :key="fretNum">
-                        <span class="text-center">{{ fretColumnName(fretNum) }}</span>
-                      </template>
-                      <span class="text-center">開放</span>
-                    </div>
-                    <div class="space-y-1">
-                      <div
-                        v-for="stringInfo in stringRows(shape.diagram.frets)"
-                        :key="stringInfo.index"
-                        class="flex items-center gap-1 text-[11px]"
-                      >
-                        <span class="w-8 text-right text-slate-500">{{ stringInfo.stringNumber }}弦</span>
-                        <div class="flex gap-1 flex-1">
-                          <div
-                            v-for="fretNum in visualFrets(shape)"
-                            :key="`${stringInfo.index}-${fretNum}`"
-                          class="flex-1 relative h-10 rounded border border-slate-800 bg-slate-950/60 flex items-center justify-center"
+                    <div class="space-y-2">
+                      <div class="grid grid-cols-6 gap-1 text-[10px] text-slate-400">
+                        <span class="text-right pr-1">弦</span>
+                        <template v-for="fretNum in visualFrets(shape)" :key="fretNum">
+                          <span class="text-center">{{ fretColumnName(fretNum) }}</span>
+                        </template>
+                        <span class="text-center">開放</span>
+                      </div>
+                      <div class="space-y-1">
+                        <div
+                          v-for="stringInfo in stringRows(shape.diagram.frets)"
+                          :key="stringInfo.index"
+                          :class="['flex items-center gap-1 text-[11px]', isMutedString(stringInfo.fret) ? 'opacity-90' : '']"
                         >
-                          <span class="relative z-10 text-[10px] text-slate-100">{{ noteNameForString(stringInfo.index, fretNum) }}</span>
-                          <span
-                            v-if="stringInfo.fret === fretNum"
-                            class="absolute inset-0 m-auto h-6 w-6 rounded-full bg-emerald-400/50 border border-emerald-500/70 z-0"
-                          ></span>
-                        </div>
-                        <div class="w-12 text-center py-1 rounded border border-slate-800 bg-slate-900/60">
-                          {{ fretNoteLabel(stringInfo.index, stringInfo.fret) }}
-                        </div>
+                          <span class="w-8 text-right text-slate-500">{{ stringInfo.stringNumber }}弦</span>
+                          <div class="flex gap-1 flex-1">
+                            <div
+                              v-for="fretNum in visualFrets(shape)"
+                              :key="`${stringInfo.index}-${fretNum}`"
+                              :class="[
+                                'flex-1 relative h-10 rounded border bg-slate-950/60 flex items-center justify-center',
+                                isMutedString(stringInfo.fret)
+                                  ? 'border-slate-600 bg-slate-800/60'
+                                  : 'border-slate-800'
+                              ]"
+                            >
+                              <span
+                                class="relative z-10 text-[10px]"
+                                :class="isMutedString(stringInfo.fret) ? 'text-slate-400' : 'text-slate-100'"
+                              >
+                                {{ noteNameForString(stringInfo.index, fretNum) }}
+                              </span>
+                              <span
+                                v-if="stringInfo.fret === fretNum"
+                                class="absolute inset-0 m-auto h-6 w-6 rounded-full bg-emerald-400/50 border border-emerald-500/70 z-0"
+                              ></span>
+                              <span
+                                v-if="isMutedString(stringInfo.fret)"
+                                class="absolute inset-0 flex items-center justify-center text-slate-400 text-lg font-bold pointer-events-none"
+                              >
+                                ×
+                              </span>
+                            </div>
+                            <div
+                              class="w-12 text-center py-1 rounded border bg-slate-900/60"
+                              :class="
+                                isMutedString(stringInfo.fret)
+                                  ? 'border-slate-600 text-slate-300 font-semibold bg-slate-800/80'
+                                  : 'border-slate-800'
+                              "
+                            >
+                              {{ fretNoteLabel(stringInfo.index, stringInfo.fret) }}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <p class="text-[10px] text-slate-400">丸印は押さえるポジション、右端は開放 / ミュートの状態です。</p>
+                      <p class="text-[10px] text-slate-400">丸印は押さえるポジション、右端は開放 / ミュートの状態です。</p>
                   </div>
                 </div>
               </div>
@@ -214,21 +229,39 @@
                         <div
                           v-for="stringInfo in stringRows(shape.diagram.frets)"
                           :key="`mini-${stringInfo.index}`"
-                          class="flex items-center gap-1 text-[10px]"
+                          :class="['flex items-center gap-1 text-[10px]', isMutedString(stringInfo.fret) ? 'opacity-90' : '']"
                         >
                           <span class="w-6 text-right text-slate-500 hidden sm:inline-block">{{ stringInfo.stringNumber }}</span>
                           <div class="flex gap-1 flex-1">
                             <div
                               v-for="fretNum in visualFrets(shape)"
                               :key="`mini-${stringInfo.index}-${fretNum}`"
-                              class="flex-1 h-5 rounded border border-slate-800 bg-slate-950/70 relative overflow-hidden"
+                              :class="[
+                                'flex-1 h-5 rounded border bg-slate-950/70 relative overflow-hidden',
+                                isMutedString(stringInfo.fret)
+                                  ? 'border-slate-600 bg-slate-800/60'
+                                  : 'border-slate-800'
+                              ]"
                             >
                               <span
                                 v-if="isPressedFret(stringInfo.fret, fretNum)"
                                 class="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-400/70 border border-emerald-500"
                               ></span>
+                              <span
+                                v-if="isMutedString(stringInfo.fret)"
+                                class="absolute inset-0 flex items-center justify-center text-slate-400 text-sm font-bold pointer-events-none"
+                              >
+                                ×
+                              </span>
                             </div>
-                            <div class="w-10 text-center text-[10px] px-1 py-0.5 rounded border border-slate-800 bg-slate-900/60">
+                            <div
+                              class="w-10 text-center text-[10px] px-1 py-0.5 rounded border bg-slate-900/60"
+                              :class="
+                                isMutedString(stringInfo.fret)
+                                  ? 'border-slate-600 text-slate-300 font-semibold bg-slate-800/80'
+                                  : 'border-slate-800'
+                              "
+                            >
                               {{ miniFretLabel(stringInfo.fret, stringInfo.index) }}
                             </div>
                           </div>
@@ -436,11 +469,11 @@
 
     <div
       v-if="showShapeDialog"
-      class="fixed inset-0 z-30 flex items-center justify-center bg-black/70 px-4"
+      class="fixed inset-0 z-30 flex items-start sm:items-center justify-center bg-black/70 px-4 py-6"
       role="dialog"
       aria-modal="true"
     >
-      <div class="w-full max-w-2xl p-6 rounded-lg bg-slate-900 border border-slate-800 space-y-4 shadow-xl">
+      <div class="w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 rounded-lg bg-slate-900 border border-slate-800 space-y-4 shadow-xl">
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-semibold">コードフォームを{{ editingShapeId ? '編集' : '登録' }}</h3>
           <button @click="closeShapeDialog" class="text-slate-400 hover:text-white">✕</button>
@@ -468,7 +501,7 @@
           <div class="md:col-span-3 space-y-2">
             <p class="text-xs text-slate-400">指板をクリックして押さえるポジションを指定（0列で開放 / ミュート切替）</p>
             <div class="overflow-x-auto">
-              <div class="min-w-[520px] space-y-2">
+              <div class="min-w-[320px] sm:min-w-[520px] space-y-2">
                 <div class="grid grid-cols-6 gap-2 text-[11px] text-slate-400">
                   <span class="text-right pr-1">弦</span>
                   <template v-for="fretNum in editableFrets()" :key="`head-${fretNum}`">
@@ -785,6 +818,9 @@
           if (text === "" || text === "x") return -1;
           const num = Number(text);
           return Number.isFinite(num) ? Math.trunc(num) : -1;
+        },
+        isMutedString(fretValue) {
+          return this.parseFretValue(fretValue) === -1;
         },
         isPressedFret(fretValue, targetFret) {
           return this.parseFretValue(fretValue) === targetFret;
