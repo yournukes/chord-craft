@@ -88,7 +88,7 @@
                     <div class="grid grid-cols-6 gap-1 text-[10px] text-slate-400">
                       <span class="text-right pr-1">弦</span>
                       <template v-for="fretNum in visualFrets(shape)" :key="fretNum">
-                        <span class="text-center">{{ fretNum }}F</span>
+                        <span class="text-center">{{ fretColumnName(fretNum) }}</span>
                       </template>
                       <span class="text-center">開放</span>
                     </div>
@@ -103,15 +103,16 @@
                           <div
                             v-for="fretNum in visualFrets(shape)"
                             :key="`${stringInfo.index}-${fretNum}`"
-                            class="flex-1 relative h-7 rounded border border-slate-800 bg-slate-950/60"
+                            class="flex-1 relative h-10 rounded border border-slate-800 bg-slate-950/60 flex items-center justify-center"
                           >
+                            <span class="text-[10px] text-slate-500">{{ noteNameForString(stringInfo.index, fretNum) }}</span>
                             <span
                               v-if="stringInfo.fret === fretNum"
-                              class="absolute inset-0 m-auto h-4 w-4 rounded-full bg-emerald-400/80 border border-emerald-700"
+                              class="absolute inset-0 m-auto h-5 w-5 rounded-full bg-emerald-400/80 border border-emerald-700"
                             ></span>
                           </div>
-                          <div class="w-10 text-center py-1 rounded border border-slate-800 bg-slate-900/60">
-                            {{ fretLabel(stringInfo.fret) }}
+                          <div class="w-12 text-center py-1 rounded border border-slate-800 bg-slate-900/60">
+                            {{ fretNoteLabel(stringInfo.index, stringInfo.fret) }}
                           </div>
                         </div>
                       </div>
@@ -254,7 +255,9 @@
                 class="flex flex-col items-center gap-1"
               >
                 <span class="text-[10px] text-slate-500">{{ stringInfo.stringNumber }}弦</span>
-                <span class="w-full text-center py-1 text-xs rounded bg-slate-950 border border-slate-700">{{ fretLabel(stringInfo.fret) }}</span>
+                <span class="w-full text-center py-1 text-xs rounded bg-slate-950 border border-slate-700">
+                  {{ fretNoteLabel(stringInfo.index, stringInfo.fret) }}
+                </span>
               </div>
             </div>
           </div>
@@ -357,13 +360,13 @@
             />
           </label>
           <div class="md:col-span-3 space-y-2">
-            <p class="text-xs text-slate-400">指板をクリックして押さえるポジションを指定（0F ボタンで開放 / ミュート切替）</p>
+            <p class="text-xs text-slate-400">指板をクリックして押さえるポジションを指定（0列で開放 / ミュート切替）</p>
             <div class="overflow-x-auto">
               <div class="min-w-[520px] space-y-2">
                 <div class="grid grid-cols-6 gap-2 text-[11px] text-slate-400">
                   <span class="text-right pr-1">弦</span>
                   <template v-for="fretNum in editableFrets()" :key="`head-${fretNum}`">
-                    <span class="text-center">{{ fretNum === 0 ? '0F (開放/ミュート)' : `${fretNum}F` }}</span>
+                    <span class="text-center">{{ fretNum === 0 ? '開放/ミュート' : fretColumnName(fretNum) }}</span>
                   </template>
                 </div>
                 <div
@@ -385,7 +388,7 @@
                       @click="selectFret(stringInfo.index, fretNum)"
                     >
                       <span v-if="fretNum === 0">{{ openMuteLabel(stringInfo.index) }}</span>
-                      <span v-else>{{ fretNum }}F</span>
+                      <span v-else class="text-[11px]">{{ noteNameForString(stringInfo.index, fretNum) }}</span>
                     </button>
                   </template>
                 </div>
@@ -415,6 +418,40 @@
   <script>
     const { createApp } = Vue;
     const rootNotes = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+    const chromaticNotes = [
+      "C",
+      "C#/Db",
+      "D",
+      "D#/Eb",
+      "E",
+      "F",
+      "F#/Gb",
+      "G",
+      "G#/Ab",
+      "A",
+      "A#/Bb",
+      "B",
+    ];
+    const noteIndexMap = {
+      C: 0,
+      "C#": 1,
+      Db: 1,
+      D: 2,
+      "D#": 3,
+      Eb: 3,
+      E: 4,
+      F: 5,
+      "F#": 6,
+      Gb: 6,
+      G: 7,
+      "G#": 8,
+      Ab: 8,
+      A: 9,
+      "A#": 10,
+      Bb: 10,
+      B: 11,
+    };
+    const standardTuning = ["E", "A", "D", "G", "B", "E"];
     const scalePatterns = {
       "メジャー": [2, 2, 1, 2, 2, 2, 1],
       "ナチュラルマイナー": [2, 1, 2, 2, 1, 2, 2],
@@ -535,10 +572,21 @@
         defaultShapeForm(chord = "") {
           return { chord, position: "", startFret: 1, frets: ["x", "x", "x", "x", "x", "x"] };
         },
-        fretLabel(value) {
-          if (value === -1 || value === "-1") return "×";
-          if (value === 0 || value === "0") return "開";
-          return `${value}F`;
+        fretColumnName(fretNumber) {
+          return this.noteNameForString(0, fretNumber);
+        },
+        fretNoteLabel(stringIndex, value) {
+          const fretValue = this.parseFretValue(value);
+          if (fretValue === -1) return "ミュート";
+          if (fretValue === 0) return this.noteNameForString(stringIndex, 0);
+          return this.noteNameForString(stringIndex, fretValue);
+        },
+        noteNameForString(stringIndex, fretNumber) {
+          const base = standardTuning[stringIndex] || "E";
+          const baseIndex = noteIndexMap[base] ?? 0;
+          const offset = Math.max(0, Number(fretNumber) || 0);
+          const index = (baseIndex + offset) % chromaticNotes.length;
+          return chromaticNotes[index];
         },
         visualFrets(shape) {
           const start = Math.max(1, shape.diagram?.startFret || 1);
@@ -559,7 +607,7 @@
         },
         openMuteLabel(stringIndex) {
           const current = this.parseFretValue(this.shapeForm.frets[stringIndex]);
-          if (current === 0) return "開放";
+          if (current === 0) return `${this.noteNameForString(stringIndex, 0)} (開放)`;
           if (current === -1) return "ミュート";
           return "未設定";
         },
