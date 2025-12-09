@@ -15,12 +15,12 @@
 
     <main class="space-y-6">
       <section class="p-4 rounded-lg bg-slate-900 border border-slate-800">
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <h2 class="text-xl font-semibold flex items-center gap-2">
             <span class="w-2 h-2 bg-sky-400 rounded-full"></span> コード進行
           </h2>
-          <div class="flex items-center gap-2 text-sm text-slate-300">
-            <div class="flex items-center gap-2 text-xs">
+          <div class="flex flex-col gap-2 text-sm text-slate-300 w-full sm:w-auto">
+            <div class="flex flex-wrap items-center gap-2 text-xs">
               <span class="text-slate-400">表示</span>
               <button
                 @click="progressionView = 'detail'"
@@ -45,9 +45,29 @@
                 簡易
               </button>
             </div>
-            <input v-model="progressionName" type="text" placeholder="進行名" class="bg-slate-800 border border-slate-700 rounded px-3 py-2" />
-            <button @click="saveProgression" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded shadow">保存</button>
-            <button v-if="currentProgressionId" @click="resetProgression" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded">新規</button>
+            <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <input
+                v-model="progressionName"
+                type="text"
+                placeholder="進行名"
+                class="bg-slate-800 border border-slate-700 rounded px-3 py-2 w-full sm:w-48"
+              />
+              <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <button
+                  @click="saveProgression"
+                  class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded shadow w-full sm:w-auto"
+                >
+                  保存
+                </button>
+                <button
+                  v-if="currentProgressionId"
+                  @click="resetProgression"
+                  class="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded w-full sm:w-auto"
+                >
+                  新規
+                </button>
+              </div>
+            </div>
           </div>
         </div>
         <div v-if="chords.length === 0" class="text-sm text-slate-400">進行にコードがありません。左のフォームから追加してください。</div>
@@ -536,18 +556,29 @@
             <p class="text-xs text-slate-400">開放弦は0、ミュートは×として保存されます。</p>
           </div>
         </div>
-        <div class="flex items-center justify-between">
-          <button
-            v-if="editingShapeId"
-            @click="deleteShape"
-            class="px-3 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded text-sm"
-          >
-            このフォームを削除
-          </button>
-          <span v-else></span>
-          <div class="flex gap-3">
-            <button @click="closeShapeDialog" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded">キャンセル</button>
-            <button @click="submitShape" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded">保存</button>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div class="w-full sm:w-auto">
+            <button
+              v-if="editingShapeId"
+              @click="deleteShape"
+              class="px-3 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded text-sm w-full sm:w-auto"
+            >
+              このフォームを削除
+            </button>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+            <button
+              @click="closeShapeDialog"
+              class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded w-full sm:w-auto"
+            >
+              キャンセル
+            </button>
+            <button
+              @click="submitShape"
+              class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded w-full sm:w-auto"
+            >
+              保存
+            </button>
           </div>
         </div>
       </div>
