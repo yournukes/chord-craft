@@ -232,16 +232,7 @@
                       </div>
                     </div>
                   </div>
-                  <div class="flex flex-wrap gap-1">
-                    <span
-                      v-for="badge in shapeCompactBadges(shape)"
-                      :key="badge"
-                      class="px-2 py-1 rounded-full bg-slate-800 border border-slate-700 text-[10px] text-slate-200"
-                    >
-                      {{ badge }}
-                    </span>
-                    <span v-if="shapeCompactBadges(shape).length === 0" class="text-[10px] text-slate-500">押弦情報なし</span>
-                  </div>
+                  <p class="text-[10px] text-slate-500">押さえる位置は詳細表示で確認できます。</p>
                 </div>
               </div>
             </div>
@@ -326,9 +317,14 @@
                   <p class="text-xs text-slate-400">{{ chord.note }}</p>
                 </div>
               </div>
-              <span class="inline-flex w-fit px-3 py-1 rounded-full bg-slate-700 text-[11px] text-amber-200 border border-slate-600">
-                {{ chord.role }}
-              </span>
+              <div class="flex flex-col gap-1 sm:items-end sm:text-right w-full sm:w-auto">
+                <span
+                  class="inline-flex w-fit px-3 py-1 rounded-full bg-slate-700 text-[11px] text-amber-200 border border-slate-600"
+                >
+                  {{ chord.role }}
+                </span>
+                <p class="text-[11px] text-slate-300 leading-snug">{{ chord.description }}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -573,40 +569,78 @@
     };
     const diatonicRoles = {
       "メジャー": [
-        "トニック",
-        "サブドミナント",
-        "トニック",
-        "サブドミナント",
-        "ドミナント",
-        "トニック",
-        "ドミナント",
+        "トニック（主音）",
+        "スーパー・トニック（上主音）",
+        "メディアン（中音）",
+        "サブドミナント（下属音）",
+        "ドミナント（属音）",
+        "サブメディアン（下中音）",
+        "リーディングトーン（導音）",
       ],
       "ナチュラルマイナー": [
-        "トニック",
-        "サブドミナント",
-        "トニック",
-        "サブドミナント",
-        "ドミナント",
-        "トニック",
-        "サブドミナント",
+        "トニック（主音）",
+        "スーパー・トニック（上主音）",
+        "メディアン（中音）",
+        "サブドミナント（下属音）",
+        "ドミナント（ナチュラル）",
+        "サブメディアン（下中音）",
+        "サブトニック（下主音）",
       ],
       "ハーモニックマイナー": [
-        "トニック",
-        "サブドミナント",
-        "トニック",
-        "サブドミナント",
-        "ドミナント",
-        "サブドミナント",
-        "ドミナント",
+        "トニック（主音）",
+        "スーパー・トニック（上主音）",
+        "メディアン（増三の中音）",
+        "サブドミナント（下属音）",
+        "ドミナント（導音付き）",
+        "サブメディアン（下中音）",
+        "リーディングトーン（導音）",
       ],
       "メロディックマイナー": [
-        "トニック",
-        "サブドミナント",
-        "トニック",
-        "サブドミナント",
-        "ドミナント",
-        "トニック",
-        "ドミナント",
+        "トニック（主音）",
+        "スーパー・トニック（上主音）",
+        "メディアン（増三の中音）",
+        "サブドミナント（下属音）",
+        "ドミナント（属音）",
+        "サブメディアン（下中音）",
+        "リーディングトーン（導音）",
+      ],
+    };
+    const diatonicRoleDescriptions = {
+      "メジャー": [
+        "I: トニック（主音）。安定感と終止感を与える中心となる和音。",
+        "ii: スーパー・トニック（上主音）。トニックから離れ、V への導入をつくる前置。",
+        "iii: メディアン（中音）。I の代理として穏やかに安定し、平行調との橋渡しを担う。",
+        "IV: サブドミナント（下属音）。展開部や前向きな流れを支える移行点。",
+        "V: ドミナント（属音）。導音を含み I へ強く解決させる推進力を持つ。",
+        "vi: サブメディアン（下中音）。平行短調の主和音として柔らかい安定感を与える。",
+        "vii°: リーディングトーン（導音）。導音で緊張を生み、I に半音で解決させる。",
+      ],
+      "ナチュラルマイナー": [
+        "i: トニック（主音）。暗く落ち着いた安定感を作る中心。",
+        "ii°: スーパー・トニック（上主音）。iv や V へ向かうための前置的な動き。",
+        "III: メディアン（中音）。平行長調の主和音で、響きに明るさを添える。",
+        "iv: サブドミナント（下属音）。マイナー特有の哀愁ある流れを支える。",
+        "v: ドミナント（ナチュラル）。導音がないため解決感は穏やかで、流れを緩める。",
+        "VI: サブメディアン（下中音）。平行長調由来で、静かな安定や転調の足場となる。",
+        "VII: サブトニック（下主音）。♭VII の性格で、III や IV への開放感を作る。",
+      ],
+      "ハーモニックマイナー": [
+        "i: トニック（主音）。導音を含むスケールの中心で、緊張と安定を併せ持つ。",
+        "ii°: スーパー・トニック（上主音）。V や vii° へつなぐ前置として機能する。",
+        "III+: メディアン（増三の中音）。増三和音で異国的なカラーを与え、VI への進行を彩る。",
+        "iv: サブドミナント（下属音）。マイナーらしい広がりで V への布石となる。",
+        "V: ドミナント（導音付き）。長三度と導音により I への非常に強い終止感を作る。",
+        "VI: サブメディアン（下中音）。IV への橋渡しや穏やかな対比として働く。",
+        "vii°: リーディングトーン（導音）。導音を含み、I に向けて最大の進行感を作る。",
+      ],
+      "メロディックマイナー": [
+        "i: トニック（主音）。昇旋律型で滑らかな中心となり、旋律の安定を担う。",
+        "ii: スーパー・トニック（上主音）。ジャズの ii-V 進行で重要な役割を果たす。",
+        "III+: メディアン（増三の中音）。#5 を含み緊張を保つ代理トニックとして機能する。",
+        "IV: サブドミナント（下属音）。メジャー的な広がりを持ち、進行を開かせる。",
+        "V: ドミナント（属音）。メジャーの V 同様に I へ強く導く。",
+        "VI: サブメディアン（下中音）。短調の中で一時的な安定や IV への接続に使われる。",
+        "vii°: リーディングトーン（導音）。半音進行で I に向かう強いリード感を与える。",
       ],
     };
 
@@ -651,6 +685,7 @@
         diatonicChords() {
           const qualities = diatonicQualities[this.selectedMode] || [];
           const roles = diatonicRoles[this.selectedMode] || [];
+          const roleDescriptions = diatonicRoleDescriptions[this.selectedMode] || [];
           return this.scaleNotes.map((note, idx) => {
             const quality = qualities[idx] || "";
             return {
@@ -659,6 +694,7 @@
               note,
               quality,
               role: roles[idx] || "機能未設定",
+              description: roleDescriptions[idx] || "ディグリーの役割説明が未設定です。",
             };
           });
         },
@@ -748,19 +784,6 @@
           if (parsed === -1) return "×";
           if (parsed === 0) return `${this.noteNameForString(stringIndex, 0)}開`;
           return `${parsed}F`;
-        },
-        shapeCompactBadges(shape) {
-          const frets = shape.diagram?.frets || [];
-          return frets
-            .map((fret, idx) => {
-              const value = this.parseFretValue(fret);
-              const stringNumber = 6 - idx;
-              if (value === -1) return `${stringNumber}弦:×`;
-              if (value === 0) return `${stringNumber}弦:開放`;
-              if (value > 0) return `${stringNumber}弦:${value}F`;
-              return null;
-            })
-            .filter(Boolean);
         },
         shapePayload() {
           return {
