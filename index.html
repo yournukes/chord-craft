@@ -182,13 +182,22 @@
         </div>
         <div class="space-y-2">
           <p class="text-xs text-slate-400">ダイアトニックコード</p>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            <div v-for="(chord, idx) in diatonicChords" :key="idx" class="p-3 rounded border border-slate-800 bg-slate-800/70 flex flex-col gap-1">
-              <div class="flex justify-between text-sm">
-                <span class="font-semibold">{{ chord.degree }}</span>
-                <span class="text-emerald-300 font-semibold">{{ chord.name }}</span>
+          <div class="flex flex-col gap-2">
+            <div
+              v-for="(chord, idx) in diatonicChords"
+              :key="idx"
+              class="p-3 rounded border border-slate-800 bg-slate-800/70 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+            >
+              <div class="flex items-baseline gap-3">
+                <span class="text-sm font-semibold text-slate-100 w-10">{{ chord.degree }}</span>
+                <div>
+                  <p class="text-sm text-emerald-300 font-semibold leading-none">{{ chord.name }}</p>
+                  <p class="text-xs text-slate-400">{{ chord.note }}</p>
+                </div>
               </div>
-              <p class="text-xs text-slate-400">{{ chord.note }}</p>
+              <span class="inline-flex w-fit px-3 py-1 rounded-full bg-slate-700 text-[11px] text-amber-200 border border-slate-600">
+                {{ chord.role }}
+              </span>
             </div>
           </div>
         </div>
@@ -378,6 +387,44 @@
       "ハーモニックマイナー": ["m", "dim", "aug", "m", "", "", "dim"],
       "メロディックマイナー": ["m", "m", "aug", "", "", "dim", "dim"],
     };
+    const diatonicRoles = {
+      "メジャー": [
+        "トニック",
+        "サブドミナント",
+        "トニック",
+        "サブドミナント",
+        "ドミナント",
+        "トニック",
+        "ドミナント",
+      ],
+      "ナチュラルマイナー": [
+        "トニック",
+        "サブドミナント",
+        "トニック",
+        "サブドミナント",
+        "ドミナント",
+        "トニック",
+        "サブドミナント",
+      ],
+      "ハーモニックマイナー": [
+        "トニック",
+        "サブドミナント",
+        "トニック",
+        "サブドミナント",
+        "ドミナント",
+        "サブドミナント",
+        "ドミナント",
+      ],
+      "メロディックマイナー": [
+        "トニック",
+        "サブドミナント",
+        "トニック",
+        "サブドミナント",
+        "ドミナント",
+        "トニック",
+        "ドミナント",
+      ],
+    };
 
     createApp({
       data() {
@@ -418,6 +465,7 @@
         },
         diatonicChords() {
           const qualities = diatonicQualities[this.selectedMode] || [];
+          const roles = diatonicRoles[this.selectedMode] || [];
           return this.scaleNotes.map((note, idx) => {
             const quality = qualities[idx] || "";
             return {
@@ -425,6 +473,7 @@
               name: this.buildLabel(note, quality),
               note,
               quality,
+              role: roles[idx] || "機能未設定",
             };
           });
         },
